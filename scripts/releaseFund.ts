@@ -45,41 +45,33 @@ async function main() {
   const membershipAddr = process.env.MEMBERSHIP_ADDR as string;
   const oracleAddr = process.env.ORACLE_ADDR as string;
   const privateKey = process.env.RELAY_PRIVATE_KEY as string;
-  const epoch = parseInt(process.env.EPOCH_ID || "485228");
 
-  const signer = (await ethers.getSigners())[2];
-
-
-  /* if (!membershipAddr || !oracleAddr || !privateKey || epoch === 0) {
+  if (!membershipAddr || !oracleAddr || !privateKey ) {
     console.error(
-      "Impostare in .env: MEMBERSHIP_ADDR, ORACLE_ADDR, RELAY_PRIVATE_KEY, EPOCH_ID"
+      "Impostare in .env: MEMBERSHIP_ADDR, ORACLE_ADDR, RELAY_PRIVATE_KEY"
     );
     process.exit(1);
-  } */
+  }
 
   // Provider and relay signer
   const provider = ethers.provider;
-  const wallet = signer || new ethers.Wallet(privateKey, provider);
+  const wallet = new ethers.Wallet(privateKey, provider);
   const relayAddress = await wallet.getAddress();
 
   // Contract instances
   const membershipAbi = [
     "function getRelayCount() view returns (uint256)",
     "function getRelayAt(uint256) view returns (address)",
-    "function relayUrl(address) view returns (string)"
+    "function relayUrl(address) view returns (string)",
   ];
-  const membership = new ethers.Contract(
-    membershipAddr,
-    membershipAbi,
-    wallet
-  );
-  const oracleAbi = [
-    "function roots(uint256) view returns (bytes32)"
-  ];
+  const membership = new ethers.Contract(membershipAddr, membershipAbi, wallet);
+  const oracleAbi = ["function roots(uint256) view returns (bytes32)", "function getEpochId() view returns (uint256)"];
   const oracle = new ethers.Contract(oracleAddr, oracleAbi, provider);
 
+  const epochId = await oracle.getEpochId();
+
   // Fetch all relays and their URLs
-  const count: number = (await membership.getRelayCount());
+  const count: number = await membership.getRelayCount();
   const aliveAddrs: string[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -91,36 +83,36 @@ async function main() {
   }
 
   if (!aliveAddrs.includes(relayAddress)) {
-    console.error("Relay non presente tra gli alive per epoch", epoch);
+    console.error("Relay non presente tra gli alive per epoch", epochId);
     process.exit(1);
   }
 
   // Build Merkle tree
-  const leaves = aliveAddrs.map(a =>
-    ethers.solidityPackedKeccak256(["address","uint256"], [a, epoch])
+  const leaves = aliveAddrs.map((a) =>
+    ethers.solidityPackedKeccak256(["address", "uint256"], [a, epochId])
   );
   const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
   const leaf = ethers.solidityPackedKeccak256(
-    ["address","uint256"],
-    [relayAddress, epoch]
+    ["address", "uint256"],
+    [relayAddress, epochId]
   );
   const proof = tree.getHexProof(leaf);
 
   // Call releaseWithProof
-  const releaseAbi = [
-    "function releaseWithProof(uint256, bytes32[]) external"
-  ];
+  const releaseAbi = ["function releaseWithProof(uint256, bytes32[]) external"];
   const membershipRelay = new ethers.Contract(
     membershipAddr,
     releaseAbi,
     wallet
   );
 
-  console.log(`Invocazione releaseWithProof(epoch=${epoch}) con proof length=${proof.length}`);
-  const tx = await membershipRelay.releaseWithProof(epoch, proof);
+  console.log(
+    `Invocazione releaseWithProof(epoch=${epochId}) con proof length=${proof.length}`
+  );
+  const tx = await membershipRelay.releaseWithProof(epochId, proof);
   const receipt = await tx.wait();
 
-  console.log("Release eseguita, tx hash:", receipt);
+  console.log("Release eseguita, tx hash:", receipt.hash);
 }
 
 main().catch((error) => {

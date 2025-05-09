@@ -4,8 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start:node": "yarn hardhat node",
-    "deploy:oracle": "yarn hardhat ignition deploy ./ignition/modules/OracleBridge.ts --network localhost",
-    "deploy:membership": "yarn hardhat ignition deploy ./ignition/modules/RelayMembership.ts --network localhost"
+    "deploy:network": "yarn hardhat ignition deploy ./ignition/modules/Network.ts --network localhost"
   },
   "author": "",
   "license": "ISC",

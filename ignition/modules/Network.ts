@@ -2,13 +2,15 @@
 // Learn more about it at https://hardhat.org/ignition
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { parseEther } from "ethers";
 
-const OracleBridge = buildModule("OracleBridge", (m) => {
-
+const Network = buildModule("Network", (m) => {
   // hardhat signer
   const oracle = m.contract("OracleBridge");
+  // hardhat signer
+  const membership = m.contract("RelayMembership", [parseEther("0.01"), oracle]);
 
-  return { oracle };
+  return { oracle, membership };
 });
 
-export default OracleBridge;
+export default Network;
