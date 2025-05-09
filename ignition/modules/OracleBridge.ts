@@ -3,12 +3,12 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const GunL2 = buildModule("GunL2", (m) => {
+const OracleBridge = buildModule("OracleBridge", (m) => {
 
   // hardhat signer
-  const layer2 = m.contract("GunL2", ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]);
+  const oracle = m.contract("OracleBridge");
 
-  return { layer2 };
+  return { oracle };
 });
 
-export default GunL2;
+export default OracleBridge;
