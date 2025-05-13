@@ -56,7 +56,11 @@ async function main() {
   const membership = new ethers.Contract(membershipAddr, membershipAbi, signer);
   const oracle = new ethers.Contract(
     oracleAddr,
-    ["function publishRoot(uint256, bytes32)", "function roots(uint256) view returns (bytes32)"],
+    [
+      "function publishRoot(uint256, bytes32)", 
+      "function roots(uint256) view returns (bytes32)",
+      "function rootTimestamps(uint256) view returns (uint256)"
+    ],
     signer
   );
 

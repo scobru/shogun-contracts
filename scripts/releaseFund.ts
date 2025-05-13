@@ -65,7 +65,11 @@ async function main() {
     "function relayUrl(address) view returns (string)",
   ];
   const membership = new ethers.Contract(membershipAddr, membershipAbi, wallet);
-  const oracleAbi = ["function roots(uint256) view returns (bytes32)", "function getEpochId() view returns (uint256)"];
+  const oracleAbi = [
+    "function roots(uint256) view returns (bytes32)", 
+    "function getEpochId() view returns (uint256)",
+    "function rootTimestamps(uint256) view returns (uint256)"
+  ];
   const oracle = new ethers.Contract(oracleAddr, oracleAbi, provider);
 
   const epochId = await oracle.getEpochId();
