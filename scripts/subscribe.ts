@@ -5,6 +5,7 @@ import { ethers } from "hardhat";
 import * as dotenv from "dotenv";
 import Gun from "gun";
 import SEA from "gun/sea";
+import axios from "axios";
 
 dotenv.config();
 
@@ -69,9 +70,66 @@ function hexToBytes(hexString: string): Uint8Array {
   return bytes;
 }
 
+/**
+ * Pre-authorize a public key with the relay server
+ * @param pubKey The Gun public key to authorize
+ * @returns {Promise<boolean>} True if authorization was successful
+ */
+async function preAuthorizeKey(pubKey: string): Promise<boolean> {
+  try {
+    console.log(`Pre-authorizing key with relay server: ${pubKey}`);
+    
+    // First attempt: Try normal authorization
+    try {
+      console.log("Attempting normal pre-authorization...");
+      const response = await axios.get(`http://localhost:8765/api/relay/pre-authorize/${pubKey}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer thisIsTheTokenForReals`
+        },
+      });
+      
+      if (response.data && response.data.success) {
+        console.log(`Pre-authorization successful: ${response.data.message}`);
+        console.log(`Key authorized until: ${new Date(response.data.expiresAt).toLocaleString()}`);
+        return true;
+      }
+    } catch (normalAuthError: any) {
+      console.log("Normal pre-authorization failed, trying with force option...");
+      console.error("Error details:", normalAuthError.response?.data || normalAuthError.message);
+    }
+    
+    // Second attempt: Try with force option
+    console.log("Using force option for pre-authorization...");
+    const forceResponse = await axios.get(`http://localhost:8765/api/relay/pre-authorize/${pubKey}?force=true`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer thisIsTheTokenForReals`
+      },
+    });
+    
+    if (forceResponse.data && forceResponse.data.success) {
+      console.log(`Force pre-authorization successful: ${forceResponse.data.message}`);
+      console.log(`Key authorized until: ${new Date(forceResponse.data.expiresAt).toLocaleString()}`);
+      return true;
+    } else {
+      console.error("Force pre-authorization failed:", forceResponse.data.error);
+      return false;
+    }
+  } catch (error: any) {
+    console.error("Error during pre-authorization:", error.message);
+    if (error.response) {
+      console.error("Server response:", error.response.data);
+    }
+    return false;
+  }
+}
+
 async function main() {
   // Lettura delle variabili d'ambiente
-  const membershipAddr = process.env.MEMBERSHIP_ADDR as string;
+  const membershipAddr = process.env.INDIVIDUAL_RELAY as string;
   const months = parseInt(process.env.SUBSCRIBE_MONTHS || "1");
   const privateKey = process.env.USER_PRIVATE_KEY as string;
 
@@ -83,7 +141,7 @@ async function main() {
   console.log(`Coppia di chiavi generata. Chiave pubblica: ${pubKey}`);
 
   if (!membershipAddr || !privateKey) {
-    console.error("Impostare in .env: MEMBERSHIP_ADDR, USER_PRIVATE_KEY, SUBSCRIBE_MONTHS");
+    console.error("Impostare in .env: INDIVIDUAL_RELAY, USER_PRIVATE_KEY, SUBSCRIBE_MONTHS");
     process.exit(1);
   }
 
@@ -121,6 +179,14 @@ async function main() {
     const receipt = await tx.wait();
 
     console.log("Subscribe eseguita, tx hash:", receipt.hash);
+
+    // Pre-authorize this key with the relay before trying to write to Gun
+    const isPreAuthorized = await preAuthorizeKey(pubKey);
+    if (!isPreAuthorized) {
+      console.error("Failed to pre-authorize key with relay. Gun writes may fail.");
+      // Continue anyway and try
+    }
+
   } catch (error) {
     console.error("Errore durante l'interazione con il contratto:");
     console.error(error);
@@ -166,7 +232,10 @@ async function main() {
         months: months
       };
 
+      console.log(subscriptionData)
+
       gun.user().get('subscription').put(subscriptionData, (ack: GunAck) => {
+        console.log(ack)
         if (ack.err) {
           reject(new Error(`Errore salvataggio dati: ${ack.err}`));
         } else {
