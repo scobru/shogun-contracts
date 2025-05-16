@@ -7,6 +7,8 @@ import Gun from "gun";
 import SEA from "gun/sea";
 import axios from "axios";
 
+import  localDeployments from "../ignition/deployments/chain-31337/deployed_addresses.json";
+
 dotenv.config();
 
 // Define GunDB callback types
@@ -24,49 +26,70 @@ interface GunAck {
 function gunPubKeyToHex(pubKey: string): string {
   try {
     // Remove the ~ prefix if present
-    if (pubKey.startsWith('~')) {
+    if (pubKey.startsWith("~")) {
       pubKey = pubKey.substring(1);
     }
 
     // Remove anything after a . if present (often used in GunDB for separating pub and epub)
-    const dotIndex = pubKey.indexOf('.');
+    const dotIndex = pubKey.indexOf(".");
     if (dotIndex > 0) {
       pubKey = pubKey.substring(0, dotIndex);
     }
 
+    // Log originale per debug
+    console.log(`Chiave pubblica ripulita: ${pubKey}`);
+
     // Convert from GunDB's URL-safe base64 to standard base64
-    const base64Key = pubKey
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-    
+    const base64Key = pubKey.replace(/-/g, "+").replace(/_/g, "/");
+
     // Add padding if needed
-    const padded = base64Key.length % 4 === 0
-      ? base64Key
-      : base64Key.padEnd(base64Key.length + (4 - (base64Key.length % 4)), '=');
-    
+    const padded =
+      base64Key.length % 4 === 0
+        ? base64Key
+        : base64Key.padEnd(
+            base64Key.length + (4 - (base64Key.length % 4)),
+            "="
+          );
+
+    console.log(`Chiave base64 padded: ${padded}`);
+
     // Convert to binary and then to hex
-    const binaryData = Buffer.from(padded, 'base64');
-    const hexData = binaryData.toString('hex');
-    
+    const binaryData = Buffer.from(padded, "base64");
+    const hexData = binaryData.toString("hex");
+
+    // Log per debug
+    console.log(`Lunghezza buffer binario: ${binaryData.length} bytes`);
+    console.log(`Lunghezza hex risultante: ${hexData.length} caratteri`);
+
     return hexData;
   } catch (error) {
-    console.error('Error converting GunDB public key to hex:', error);
-    return '';
+    console.error("Error converting GunDB public key to hex:", error);
+    return "";
   }
 }
 
 // Funzione per convertire stringa hex in bytes
 function hexToBytes(hexString: string): Uint8Array {
   // Se è già nel formato 0x, rimuovi il prefisso
-  const hex = hexString.startsWith('0x') ? hexString.slice(2) : hexString;
+  const hex = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
   // Se è una stringa vuota o solo "0x", restituisci un array vuoto
-  if (hex === '') return new Uint8Array(0);
-  
-  const bytes = new Uint8Array(hex.length / 2);
+  if (hex === "") return new Uint8Array(0);
+
+  // Assicurati che la lunghezza sia pari (ogni byte sono 2 caratteri hex)
+  const evenHex = hex.length % 2 === 0 ? hex : "0" + hex;
+
+  const bytes = new Uint8Array(evenHex.length / 2);
   for (let i = 0; i < bytes.length; i++) {
-    const byte = parseInt(hex.substr(i * 2, 2), 16);
+    const byte = parseInt(evenHex.substr(i * 2, 2), 16);
     bytes[i] = byte;
   }
+
+  // Log per debug
+  console.log(`Lunghezza bytes: ${bytes.length}`);
+  if (bytes.length > 0) {
+    console.log(`Primo byte: ${bytes[0]}, Ultimo byte: ${bytes[bytes.length - 1]}`);
+  }
+
   return bytes;
 }
 
@@ -75,118 +98,160 @@ function hexToBytes(hexString: string): Uint8Array {
  * @param pubKey The Gun public key to authorize
  * @returns {Promise<boolean>} True if authorization was successful
  */
-async function preAuthorizeKey(pubKey: string): Promise<boolean> {
+async function preAuthorizeKey(pubKey: string): Promise<{success: boolean, token?: string}> {
   try {
     console.log(`Pre-authorizing key with relay server: ${pubKey}`);
-    
-    // First attempt: Try normal authorization
+
+    // Prima richiesta per ottenere un token JWT con verifica blockchain
     try {
-      console.log("Attempting normal pre-authorization...");
-      const response = await axios.get(`http://localhost:8765/api/relay/pre-authorize/${pubKey}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer thisIsTheTokenForReals`
-        },
-      });
+      console.log("Attempting to obtain a JWT token with blockchain verification...");
       
-      if (response.data && response.data.success) {
-        console.log(`Pre-authorization successful: ${response.data.message}`);
-        console.log(`Key authorized until: ${new Date(response.data.expiresAt).toLocaleString()}`);
-        return true;
+      // Utilizziamo il nuovo endpoint che combina pre-autorizzazione e generazione token
+      const response = await axios.get(
+        `http://localhost:8765/api/relay/pre-authorize-with-token/${pubKey}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          }
+        }
+      );
+
+      if (response.data && response.data.success && response.data.token) {
+        console.log(`JWT token obtained successfully`);
+        return {
+          success: true,
+          token: response.data.token
+        };
       }
-    } catch (normalAuthError: any) {
-      console.log("Normal pre-authorization failed, trying with force option...");
-      console.error("Error details:", normalAuthError.response?.data || normalAuthError.message);
+    } catch (tokenError: any) {
+      console.log("JWT token creation failed, falling back to pre-authorization...");
+      console.error(
+        "Error details:",
+        tokenError.response?.data || tokenError.message
+      );
     }
-    
-    // Second attempt: Try with force option
-    console.log("Using force option for pre-authorization...");
-    const forceResponse = await axios.get(`http://localhost:8765/api/relay/pre-authorize/${pubKey}?force=true`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer thisIsTheTokenForReals`
-      },
-    });
-    
+
+    // Fallback al metodo precedente se necessario
+    console.log("Falling back to legacy pre-authorization...");
+    const forceResponse = await axios.get(
+      `http://localhost:8765/api/relay/pre-authorize/${pubKey}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      }
+    );
+
     if (forceResponse.data && forceResponse.data.success) {
-      console.log(`Force pre-authorization successful: ${forceResponse.data.message}`);
-      console.log(`Key authorized until: ${new Date(forceResponse.data.expiresAt).toLocaleString()}`);
-      return true;
+      console.log(
+        `Legacy pre-authorization successful: ${forceResponse.data.message}`
+      );
+      return {
+        success: true
+      };
     } else {
-      console.error("Force pre-authorization failed:", forceResponse.data.error);
-      return false;
+      console.error(
+        "Legacy pre-authorization failed:",
+        forceResponse.data.error
+      );
+      return {
+        success: false
+      };
     }
   } catch (error: any) {
-    console.error("Error during pre-authorization:", error.message);
+    console.error("Error during authorization:", error.message);
     if (error.response) {
       console.error("Server response:", error.response.data);
     }
-    return false;
+    return {
+      success: false
+    };
   }
 }
 
 async function main() {
   // Lettura delle variabili d'ambiente
-  const membershipAddr = process.env.INDIVIDUAL_RELAY as string;
+
+
+  const individualRelay = localDeployments["Network#IndividualRelay"]
   const months = parseInt(process.env.SUBSCRIBE_MONTHS || "1");
   const privateKey = process.env.USER_PRIVATE_KEY as string;
 
-  const gun = Gun({peers: ["http://localhost:8765/gun"], localStorage: false, radisk: false});
+  const gun = Gun({
+    peers: ["http://localhost:8765/gun"],
+    localStorage: false,
+    radisk: false,
+  });
+
+  let authResult = null;
 
   console.log("Generazione coppia di chiavi GunDB...");
   let pair = await SEA.pair();
   let pubKey = pair.pub;
   console.log(`Coppia di chiavi generata. Chiave pubblica: ${pubKey}`);
 
-  if (!membershipAddr || !privateKey) {
-    console.error("Impostare in .env: INDIVIDUAL_RELAY, USER_PRIVATE_KEY, SUBSCRIBE_MONTHS");
+  if (!individualRelay || !privateKey) {
+    console.error(
+      "Impostare in .env: USER_PRIVATE_KEY"
+    );
     process.exit(1);
   }
 
-  console.log(`Usando contratto all'indirizzo: ${membershipAddr}`);
+  console.log(`Usando contratto all'indirizzo: ${individualRelay}`);
 
   // Provider e signer
   const provider = ethers.provider;
   const wallet = new ethers.Wallet(privateKey, provider);
 
   // Contract instance
-  const membershipAbi = [
+  const individualRelayAbi = [
     "function pricePerMonth() view returns (uint256)",
-    "function subscribe(uint256 months, bytes calldata pubKey) external payable"
+    "function subscribe(uint256 months, bytes calldata pubKey) external payable",
   ];
-  const membership = new ethers.Contract(membershipAddr, membershipAbi, wallet);
+  const individualRelayContract = new ethers.Contract(individualRelay, individualRelayAbi, wallet);
 
   try {
     // Calcola il valore da inviare
     console.log("Tentativo di lettura del prezzo per mese...");
-    const price: bigint = await membership.pricePerMonth();
+    const price: bigint = await individualRelayContract.pricePerMonth();
     const total: bigint = price * BigInt(months);
 
-    console.log(`Sottoscrizione per ${months} mese(i), totale: ${ethers.formatEther(total)} ETH`);
+    console.log(
+      `Sottoscrizione per ${months} mese(i), totale: ${ethers.formatEther(
+        total
+      )} ETH`
+    );
 
     // Converti la pubKey di Gun in formato hex per il contratto
     console.log("Conversione della chiave pubblica per il contratto...");
     const hexPubKey = gunPubKeyToHex(pubKey);
-    console.log(`Chiave pubblica convertita: 0x${hexPubKey.substring(0, 20)}...`);
-    
+    console.log(
+      `Chiave pubblica convertita: 0x${hexPubKey.substring(0, 20)}...`
+    );
+
     // Converte da hex a bytes per il contratto
     const pubkeyBytes = hexToBytes(hexPubKey);
-    console.log(`Inviando chiave pubblica di ${pubkeyBytes.length} bytes al contratto`);
+    console.log(
+      `Inviando chiave pubblica di ${pubkeyBytes.length} bytes al contratto`
+    );
 
-    const tx = await membership.subscribe(months, pubkeyBytes, { value: total });
+    const tx = await individualRelayContract.subscribe(months, pubkeyBytes, {
+      value: total,
+    });
     const receipt = await tx.wait();
 
     console.log("Subscribe eseguita, tx hash:", receipt.hash);
 
-    // Pre-authorize this key with the relay before trying to write to Gun
-    const isPreAuthorized = await preAuthorizeKey(pubKey);
-    if (!isPreAuthorized) {
-      console.error("Failed to pre-authorize key with relay. Gun writes may fail.");
+    // Pre-authorize this key with the relay and get a JWT token if possible
+    authResult = await preAuthorizeKey(pubKey);
+    if (!authResult.success) {
+      console.error(
+        "Failed to authorize key with relay. Gun writes may fail."
+      );
       // Continue anyway and try
     }
-
   } catch (error) {
     console.error("Errore durante l'interazione con il contratto:");
     console.error(error);
@@ -200,7 +265,7 @@ async function main() {
     try {
       await new Promise((resolve, reject) => {
         gun.user().create(pair.pub, pair.priv, (ack: GunAck) => {
-          if (ack.err && !ack.err.includes('already created')) {
+          if (ack.err && !ack.err.includes("already created")) {
             console.warn("Errore nella creazione utente:", ack.err);
           }
           resolve(ack);
@@ -229,20 +294,33 @@ async function main() {
         data: "test",
         timestamp: Date.now(),
         address: wallet.address,
-        months: months
+        months: months,
       };
 
-      console.log(subscriptionData)
+      console.log(subscriptionData);
 
-      gun.user().get('subscription').put(subscriptionData, (ack: GunAck) => {
-        console.log(ack)
-        if (ack.err) {
-          reject(new Error(`Errore salvataggio dati: ${ack.err}`));
-        } else {
-          console.log("Subscription saved in gun");
-          resolve(ack);
-        }
+      gun.on("out", function (ctx) {
+        var to = this.to;
+        // Adds headers for put
+        ctx.headers = {
+          // Usa il JWT token se disponibile, altrimenti fallback al token di sistema
+          token: authResult.token,
+        };
+        to.next(ctx); // pass to next middleware
       });
+
+      gun
+        .user()
+        .get("subscription")
+        .put(subscriptionData, (ack: GunAck) => {
+          console.log(ack);
+          if (ack.err) {
+            reject(new Error(`Errore salvataggio dati: ${ack.err}`));
+          } else {
+            console.log("Subscription saved in gun");
+            resolve(ack);
+          }
+        });
     });
 
     console.log("Sincronizzazione dati completata");
