@@ -175,7 +175,7 @@ async function main() {
   // Lettura delle variabili d'ambiente
 
 
-  const individualRelay = localDeployments["Network#IndividualRelay"]
+  const individualRelay = localDeployments["Network#SimpleRelay"]
   const months = parseInt(process.env.SUBSCRIBE_MONTHS || "1");
   const privateKey = process.env.USER_PRIVATE_KEY as string;
 

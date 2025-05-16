@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title Registry
@@ -80,7 +80,11 @@ contract Registry is Ownable, ReentrancyGuard {
         // Verifiche
         require(registrationOpen, "Registry: Registration closed");
         require(_relayAddress != address(0), "Registry: Invalid relay address");
-        require(Address.isContract(_relayAddress), "Registry: Address must be a contract");
+        uint256 size;
+        assembly {
+            size := extcodesize(_relayAddress)
+        }
+        require(size > 0, "Registry: Address must be a contract");
         require(bytes(_url).length > 0, "Registry: URL cannot be empty");
         require(!isRegisteredRelay[_relayAddress], "Registry: Relay already registered");
         require(relaysByUrl[_url] == address(0), "Registry: URL already in use");

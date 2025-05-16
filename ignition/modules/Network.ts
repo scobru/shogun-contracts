@@ -5,27 +5,54 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther } from "ethers";
 
 const Network = buildModule("Network", (m) => {
-  // Deploy the RelayRegistry with the updated parameters
-  const relayRegistry = m.contract("RelayRegistry", [
+  // Deploy the Registry
+  const registry = m.contract("Registry", [
     m.getAccount(0),             // initialOwner (first signer)
-    parseEther("0.005"),         // initialPrice (0.005 ETH per month)
-    10,                          // feePercentage (10%)
-    parseEther("0.1")            // minStake (0.1 ETH)
+    true                         // registrationOpen (start with open registration)
   ]);
   
-  // Deploy an IndividualRelay with updated parameters (no registry in constructor)
-  const initialRelay = m.contract("IndividualRelay", [
+  // Deploy a Relay
+  const relay = m.contract("Relay", [
     m.getAccount(0),             // initialOwner (first signer)
     parseEther("0.005"),         // initialPriceWei (0.005 ETH per month)
     30,                          // initialDaysPerMonth
     "http://localhost:8765/gun"  // url
   ]);
 
-  // Additional steps to set up the relay with registry and stake
-  const addStake = m.call(initialRelay, "addStake", [], { value: parseEther("0.2") });
-  const setRegistry = m.call(initialRelay, "setRegistryAddress", [relayRegistry], { after: [addStake] });
+  // Deploy EntryPoint that connects the Registry with Relays
+  const entryPoint = m.contract("EntryPoint", [
+    registry,                    // registry address
+    m.getAccount(0),             // initialOwner (first signer)
+    250                          // initialFeePercentage (2.5% = 250 in base 10000)
+  ]);
 
-  return { relayRegistry, initialRelay };
+  // Register the relay in the registry
+  const registerRelay = m.call(registry, "registerRelay", [
+    relay,                       // relay address
+    "http://localhost:8765/gun", // url
+    "{\"name\":\"Local Test Relay\",\"description\":\"A local relay for testing\"}" // metadata
+  ]);
+
+  // Configure the relay to use the Registry
+  const setRegistryInRelay = m.call(relay, "setRegistry", [
+    registry,                    // registry address
+    false,                       // autoRegister (we already registered it manually)
+    ""                           // no additional metadata needed
+  ]);
+
+  // Configure the relay with EntryPoint and enable PROTOCOL mode
+  const setEntryPointInRelay = m.call(relay, "setEntryPoint", [
+    entryPoint,                  // entryPoint address
+    true                         // enableProtocolMode
+  ]);
+  
+  // Optional: Update relay configuration for better UX
+  const setDaysPerMonth = m.call(relay, "setDaysPerMonth", [
+    28                           // 28 days per month (more consistent across months)
+  ]);
+  
+  // Return the main contract instances
+  return { registry, relay, entryPoint };
 });
 
 export default Network;

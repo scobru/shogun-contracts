@@ -4,12 +4,29 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SimpleRelay is Ownable {
+interface IRegistry {
+    function registerRelay(
+        address _relayAddress,
+        string calldata _url,
+        string calldata _metadata
+    ) external;
+    
+    function isRegisteredRelay(address _relayAddress) external view returns (bool);
+}
+
+contract Relay is Ownable {
     // Constants and Configurable Parameters
     uint256 public constant DAY = 1 days;
     uint256 public daysPerMonth; // Set by owner
     uint256 public pricePerMonth; // Set by owner, in wei
     string public relayUrl;
+
+    // Protocol Integration
+    enum OperatingMode { SINGLE, PROTOCOL }
+    OperatingMode public mode = OperatingMode.SINGLE;
+    address public registryAddress;
+    address public entryPointAddress;
+    bool public isRegisteredInRegistry;
 
     // User subscription info
     struct UserInfo {
@@ -29,6 +46,18 @@ contract SimpleRelay is Ownable {
     event PubKeyRemoved(address indexed user, bytes pubKey);
     event Decommissioned(address indexed owner, uint256 withdrawnAmount);
     event GenericTransactionSent(address indexed to, uint256 value, bytes data, bool success);
+    event RegistrySet(address indexed registryAddress);
+    event EntryPointSet(address indexed entryPointAddress);
+    event OperatingModeChanged(OperatingMode newMode);
+    event RegisteredInRegistry(address indexed registryAddress);
+
+    modifier onlyEntryPoint() {
+        require(
+            mode == OperatingMode.SINGLE || msg.sender == entryPointAddress,
+            "SR: Only EntryPoint can call this in PROTOCOL mode"
+        );
+        _;
+    }
 
     constructor(
         address _initialOwner,
@@ -45,11 +74,92 @@ contract SimpleRelay is Ownable {
         relayUrl = _url;
     }
 
+    // --- Protocol Integration ---
+    
+    /**
+     * @notice Imposta l'indirizzo del Registry e opzionalmente registra il relay
+     * @param _registryAddress Indirizzo del contratto Registry
+     * @param _autoRegister Se true, registra automaticamente il relay nel Registry
+     * @param _metadata Metadati opzionali per la registrazione
+     */
+    function setRegistry(
+        address _registryAddress, 
+        bool _autoRegister,
+        string calldata _metadata
+    ) external onlyOwner {
+        require(_registryAddress != address(0), "SR: Invalid registry address");
+        
+        registryAddress = _registryAddress;
+        emit RegistrySet(_registryAddress);
+        
+        if (_autoRegister) {
+            registerInRegistry(_metadata);
+        }
+    }
+    
+    /**
+     * @notice Imposta l'indirizzo dell'EntryPoint e cambia la modalità operativa
+     * @param _entryPointAddress Indirizzo del contratto EntryPoint
+     * @param _enableProtocolMode Se true, imposta la modalità su PROTOCOL
+     */
+    function setEntryPoint(
+        address _entryPointAddress,
+        bool _enableProtocolMode
+    ) external onlyOwner {
+        require(_entryPointAddress != address(0), "SR: Invalid entry point address");
+        
+        entryPointAddress = _entryPointAddress;
+        emit EntryPointSet(_entryPointAddress);
+        
+        if (_enableProtocolMode) {
+            require(registryAddress != address(0), "SR: Registry must be set before enabling PROTOCOL mode");
+            mode = OperatingMode.PROTOCOL;
+            emit OperatingModeChanged(OperatingMode.PROTOCOL);
+        }
+    }
+    
+    /**
+     * @notice Cambia la modalità operativa tra SINGLE e PROTOCOL
+     * @param _newMode Nuova modalità operativa
+     */
+    function setOperatingMode(OperatingMode _newMode) external onlyOwner {
+        if (_newMode == OperatingMode.PROTOCOL) {
+            require(
+                registryAddress != address(0) && entryPointAddress != address(0),
+                "SR: Registry and EntryPoint must be set for PROTOCOL mode"
+            );
+        }
+        
+        mode = _newMode;
+        emit OperatingModeChanged(_newMode);
+    }
+    
+    /**
+     * @notice Registra il relay nel Registry
+     * @param _metadata Metadati opzionali per la registrazione
+     */
+    function registerInRegistry(string calldata _metadata) public onlyOwner {
+        require(registryAddress != address(0), "SR: Registry not set");
+        
+        // Verifica se è già registrato
+        bool alreadyRegistered = IRegistry(registryAddress).isRegisteredRelay(address(this));
+        
+        if (!alreadyRegistered) {
+            IRegistry(registryAddress).registerRelay(address(this), relayUrl, _metadata);
+            isRegisteredInRegistry = true;
+            emit RegisteredInRegistry(registryAddress);
+        }
+    }
+
     // --- Subscription Management ---
-    function subscribe(uint256 _months, bytes calldata _pubKey) external payable {
+    function subscribe(uint256 _months, bytes calldata _pubKey) external payable onlyEntryPoint {
         require(_months > 0, "SR: Months must be positive");
         require(pricePerMonth > 0, "SR: Price not set or relay decommissioned");
-        require(msg.value == _months * pricePerMonth, "SR: Incorrect payment value");
+        
+        // In modalità SINGLE, verifica il pagamento, altrimenti lascia che il sender (EntryPoint) gestisca il pagamento
+        if (mode == OperatingMode.SINGLE) {
+            require(msg.value == _months * pricePerMonth, "SR: Incorrect payment value");
+        }
         
         if (_pubKey.length > 0) {
             require(_pubKey.length >= 32 && _pubKey.length <= 128, "SR: Invalid pubKey length");
@@ -210,5 +320,21 @@ contract SimpleRelay is Ownable {
         uint256 _daysInMonth
     ) {
         return (relayUrl, pricePerMonth, daysPerMonth);
+    }
+    
+    /**
+     * @notice Ottieni le informazioni sulla modalità operativa del relay
+     * @return _mode Modalità operativa attuale
+     * @return _registry Indirizzo del Registry configurato
+     * @return _entryPoint Indirizzo dell'EntryPoint configurato
+     * @return _isRegistered Se il relay è registrato nel Registry
+     */
+    function getRelayMode() external view returns (
+        OperatingMode _mode,
+        address _registry,
+        address _entryPoint,
+        bool _isRegistered
+    ) {
+        return (mode, registryAddress, entryPointAddress, isRegisteredInRegistry);
     }
 }
