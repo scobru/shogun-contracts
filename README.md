@@ -801,12 +801,14 @@ When using the Shogun Relay Protocol, be aware of these security considerations:
 
 ## Contract Addresses
 
-| Network | Registry | EntryPoint |
-| ------- | -------- | ---------- |
-| Mainnet | TBD      | TBD        |
-| Goerli  | TBD      | TBD        |
-| Sepolia | TBD      | TBD        |
-| Polygon | TBD      | TBD        |
+| Network | Registry | EntryPoint | TestRelay |
+| ------- | -------- | ---------- | --------- |
+| Mainnet | TBD      | TBD        | TBD       |
+| Goerli  | TBD      | TBD        | TBD       |
+| Sepolia | TBD      | TBD        | TBD       |
+| Polygon | TBD      | TBD        | TBD       |
+| OptimismSepolia | 0x4856C1238040C2b32d4815a71602712E1867D6Ed      | 0xFE12895baf9BC245678c3f391A64B74778CDFE01        | 0x6be800967Ad9147080ae384C5BE4E57Bd062D360 |
+
 
 ## Development Commands
 
@@ -821,7 +823,7 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 
 # Deploy contracts
-npx hardhat ignition deploy ./ignition/modules/Network.ts
+npx hardhat ignition deploy ./ignition/modules/Protocol.ts
 ```
 
 ## Advanced Architecture
@@ -878,13 +880,7 @@ The current fee can be checked by calling `serviceFeePercentage()` on the EntryP
    - Verify relay registration status with `registry.isRegisteredRelay()`
    - Ensure public keys meet the length requirements (32-128 bytes)
 
-## Deployments
 
-### Optimism Sepolia
-
-- Protocol#Registry : 0x4856C1238040C2b32d4815a71602712E1867D6Ed
-- Protocol#Relay : 0x6be800967Ad9147080ae384C5BE4E57Bd062D360 (First deployed)
-- Protocol#EntryPoint : 0xFE12895baf9BC245678c3f391A64B74778CDFE01
 
 ### Support Resources
 
