@@ -1,6 +1,6 @@
 {
   "name": "shogun-contracts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "chain": "npx hardhat node",
     "deploy:local": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network localhost",

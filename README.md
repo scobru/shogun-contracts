@@ -726,57 +726,7 @@ const unsubscribe = subscribeToRelayEvents(registry, (event) => {
 unsubscribe();
 ```
 
-### Relay Membership Verification
-
-For applications that need to verify if users are authorized relay members:
-
-```typescript
-import { RelayMembershipVerifier } from "shogun-core/contracts";
-
-// Create a verifier instance
-const verifier = new RelayMembershipVerifier({
-  contractAddress: relayAddress,
-  providerUrl: "https://ethereum-rpc-url.com",
-});
-
-// Verify if an address is authorized
-const isAuthorized = await verifier.isAddressAuthorized(userAddress);
-console.log(`User is ${isAuthorized ? "authorized" : "unauthorized"}`);
-
-// Verify if a public key is authorized
-const isPubKeyAuthorized = await verifier.isPublicKeyAuthorized(publicKeyHex);
-console.log(
-  `Public key is ${isPubKeyAuthorized ? "authorized" : "unauthorized"}`
-);
-
-// Get detailed user information
-const userInfo = await verifier.getUserInfo(userAddress);
-if (userInfo) {
-  console.log(
-    `Subscription expires: ${new Date(Number(userInfo.expires) * 1000)}`
-  );
-  console.log(`Public key: ${userInfo.pubKey}`);
-}
-```
-
 This comprehensive API allows your application to fully integrate with the Shogun Protocol ecosystem, enabling secure, decentralized communication and verification.
-
-## Integration with Stealth Payment System
-
-The Shogun Protocol can be integrated with the Stealth Payment system for enhanced privacy:
-
-```javascript
-// Set up a payment forwarder hook for the relay
-const paymentForwarder = await PaymentForwarder.deploy(
-  relayAddress,
-  hookReceiverAddress
-);
-
-// Payments can now be forwarded through the stealth payment system
-// This requires the StealthKeyRegistry to be properly configured
-```
-
-For more details on the Stealth Payment integration, refer to the StealthKeyRegistry and PaymentForwarder documentation.
 
 ## Security Considerations
 
