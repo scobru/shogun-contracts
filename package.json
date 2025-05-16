@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "chain": "npx hardhat node",
-    "deploy:network": "yarn hardhat ignition deploy ./ignition/modules/Network.ts --network localhost"
+    "deploy:local": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network localhost",
+    "deploy:sepolia": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network sepolia --verify",
+    "deploy:optimismSepolia": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network optimismSepolia --verify"
   },
   "author": "scobru",
   "license": "MIT",

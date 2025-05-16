@@ -40,12 +40,14 @@ The EntryPoint contract acts as a user-facing interface for the protocol, allowi
 The Relay contract supports two distinct operating modes:
 
 ### SINGLE Mode
+
 - Default mode for standalone relay operation
 - Direct payment handling with built-in validation
 - No dependency on the EntryPoint or Registry contracts
 - Suitable for independent relay operators
 
 ### PROTOCOL Mode
+
 - Integrated mode for participation in the full Shogun Protocol
 - Subscription requests must come through the EntryPoint contract
 - Requires registration in the Registry contract
@@ -95,12 +97,12 @@ npx hardhat ignition deploy ./ignition/modules/Network.ts
 ### For Relay Providers
 
 1. **Deploy a Relay Contract**:
-   
+
    ```javascript
    const relay = await Relay.deploy(
      ownerAddress,
      ethers.parseEther("0.005"), // Monthly subscription price
-     30,                         // Days per month
+     30, // Days per month
      "https://your-relay-url.com"
    );
    ```
@@ -113,7 +115,7 @@ npx hardhat ignition deploy ./ignition/modules/Network.ts
      "https://your-relay-url.com",
      JSON.stringify({
        name: "Your Relay Service",
-       description: "Description of your relay service"
+       description: "Description of your relay service",
      })
    );
    ```
@@ -126,7 +128,7 @@ npx hardhat ignition deploy ./ignition/modules/Network.ts
      true, // autoRegister
      JSON.stringify({
        name: "Your Relay Service",
-       description: "Description of your relay service"
+       description: "Description of your relay service",
      })
    );
    ```
@@ -146,10 +148,10 @@ npx hardhat ignition deploy ./ignition/modules/Network.ts
    ```javascript
    // Update pricing
    await relay.setPrice(ethers.parseEther("0.007"));
-   
+
    // Update days per month calculation
    await relay.setDaysPerMonth(28);
-   
+
    // Update relay URL
    await relay.updateRelayUrl("https://new-relay-url.com");
    ```
@@ -159,14 +161,14 @@ npx hardhat ignition deploy ./ignition/modules/Network.ts
    ```javascript
    // Withdraw funds from the relay
    await relay.withdrawFunds();
-   
+
    // Execute custom transactions (owner only)
    await relay.execute(
      targetAddress,
      ethers.parseEther("0.1"), // value to send
      encodedCallData
    );
-   
+
    // Decommission relay and withdraw all funds
    await relay.decommissionAndWithdrawAllFunds();
    ```
@@ -177,29 +179,34 @@ npx hardhat ignition deploy ./ignition/modules/Network.ts
 
    ```javascript
    // Calculate cost for a direct subscription
-   const { subscriptionCost, fee, totalCost } = await entryPoint.calculateSubscriptionCost(
-     relayAddress,
-     3 // months
-   );
+   const { subscriptionCost, fee, totalCost } =
+     await entryPoint.calculateSubscriptionCost(
+       relayAddress,
+       3 // months
+     );
    console.log(`Subscription: ${ethers.formatEther(subscriptionCost)} ETH`);
    console.log(`EntryPoint Fee: ${ethers.formatEther(fee)} ETH`);
    console.log(`Total Cost: ${ethers.formatEther(totalCost)} ETH`);
-   
+
    // Calculate cost using relay URL
-   const { relayAddress, subscriptionCost, fee, totalCost } = 
+   const { relayAddress, subscriptionCost, fee, totalCost } =
      await entryPoint.calculateSubscriptionCostByUrl(
        "https://relay-service.com",
        3 // months
      );
-   
+
    // Calculate cost for batch subscription to multiple relays
-   const { totalSubscriptionCost, totalFee, totalCost, costs } = 
+   const { totalSubscriptionCost, totalFee, totalCost, costs } =
      await entryPoint.calculateBatchSubscriptionCost(
        [relay1Address, relay2Address],
        3 // months
      );
-   console.log(`Total Cost for all relays: ${ethers.formatEther(totalCost)} ETH`);
-   console.log(`Individual relay costs: ${costs.map(c => ethers.formatEther(c))}`);
+   console.log(
+     `Total Cost for all relays: ${ethers.formatEther(totalCost)} ETH`
+   );
+   console.log(
+     `Individual relay costs: ${costs.map((c) => ethers.formatEther(c))}`
+   );
    ```
 
 2. **Subscribe to a Relay Directly**:
@@ -241,14 +248,23 @@ npx hardhat ignition deploy ./ignition/modules/Network.ts
 
    ```javascript
    // Check if subscription is active
-   const isActive = await entryPoint.checkSubscription(userAddress, relayAddress);
-   
+   const isActive = await entryPoint.checkSubscription(
+     userAddress,
+     relayAddress
+   );
+
    // Check if a public key is registered
-   const hasPubKey = await entryPoint.hasRegisteredPubKey(userAddress, relayAddress);
-   
+   const hasPubKey = await entryPoint.hasRegisteredPubKey(
+     userAddress,
+     relayAddress
+   );
+
    // Check if a specific public key is subscribed
-   const isSubscribed = await entryPoint.isPubKeySubscribed(relayAddress, publicKeyBytes);
-   
+   const isSubscribed = await entryPoint.isPubKeySubscribed(
+     relayAddress,
+     publicKeyBytes
+   );
+
    // Batch check public keys across multiple relays
    const subscriptionStatuses = await entryPoint.batchCheckPubKeySubscription(
      [relay1Address, relay2Address],
@@ -264,20 +280,21 @@ The EntryPoint provides several methods to calculate subscription costs before c
 
 ```javascript
 // Get the cost for a single relay subscription
-const { subscriptionCost, fee, totalCost } = await entryPoint.calculateSubscriptionCost(
-  relayAddress,
-  3 // months
-);
+const { subscriptionCost, fee, totalCost } =
+  await entryPoint.calculateSubscriptionCost(
+    relayAddress,
+    3 // months
+  );
 
 // Get the cost using relay URL (also returns the relay address)
-const { relayAddress, subscriptionCost, fee, totalCost } = 
+const { relayAddress, subscriptionCost, fee, totalCost } =
   await entryPoint.calculateSubscriptionCostByUrl(
     "https://relay-service.com",
     3 // months
   );
 
 // Calculate cost for multiple relays at once
-const { totalSubscriptionCost, totalFee, totalCost, costs } = 
+const { totalSubscriptionCost, totalFee, totalCost, costs } =
   await entryPoint.calculateBatchSubscriptionCost(
     [relay1Address, relay2Address],
     3 // months
@@ -302,6 +319,7 @@ const isSubscribed = await relay.isSubscribed(publicKeyBytes);
 ```
 
 The protocol handles public key updates and replacements:
+
 - If a user registers a new public key, the old one is automatically removed
 - Public keys are unique across active users (expired subscriptions' keys can be reused)
 - Keys must meet length requirements (between 32 and 128 bytes)
@@ -337,12 +355,14 @@ const activeRelays = await registry.getAllRelays(true, 0, 10);
 The protocol emits various events that can be monitored:
 
 #### Registry Events
+
 - `RelayRegistered(address indexed relayAddress, address indexed owner, string url)`
 - `RelayUpdated(address indexed relayAddress, string newUrl, string newMetadata)`
 - `RelayDeactivated(address indexed relayAddress)`
 - `RelayReactivated(address indexed relayAddress)`
 
 #### Relay Events
+
 - `Subscribed(address indexed user, bytes pubKey, uint256 months, uint256 newExpiryTimestamp)`
 - `PubKeySet(address indexed user, bytes pubKey, bytes oldPubKey)`
 - `PubKeyRemoved(address indexed user, bytes pubKey)`
@@ -352,6 +372,7 @@ The protocol emits various events that can be monitored:
 - `OperatingModeChanged(OperatingMode newMode)`
 
 #### EntryPoint Events
+
 - `SubscriptionProcessed(address indexed user, address indexed relay, uint256 months, uint256 amount, uint256 fee)`
 - `BatchSubscriptionProcessed(address indexed user, address[] relays, uint256 months, uint256 totalAmount, uint256 totalFee)`
 - `FeesWithdrawn(address indexed to, uint256 amount)`
@@ -363,17 +384,24 @@ Example of listening for events:
 ```javascript
 // Listen for subscription events
 relay.on("Subscribed", (user, pubKey, months, expiry) => {
-  console.log(`User ${user} subscribed for ${months} months with pubKey ${pubKey}`);
+  console.log(
+    `User ${user} subscribed for ${months} months with pubKey ${pubKey}`
+  );
 });
 
 // Listen for batch subscription events
-entryPoint.on("BatchSubscriptionProcessed", (user, relays, months, amount, fee) => {
-  console.log(`User ${user} subscribed to ${relays.length} relays for ${months} months`);
-});
+entryPoint.on(
+  "BatchSubscriptionProcessed",
+  (user, relays, months, amount, fee) => {
+    console.log(
+      `User ${user} subscribed to ${relays.length} relays for ${months} months`
+    );
+  }
+);
 
 // Listen for fee changes
 entryPoint.on("ServiceFeeUpdated", (oldFee, newFee) => {
-  console.log(`Service fee changed from ${oldFee/100}% to ${newFee/100}%`);
+  console.log(`Service fee changed from ${oldFee / 100}% to ${newFee / 100}%`);
 });
 ```
 
@@ -394,29 +422,29 @@ Each class provides type-safe methods to interact with their respective smart co
 ### Setup and Initialization
 
 ```typescript
-import { 
-  Registry, 
-  SimpleRelay, 
+import {
+  Registry,
+  SimpleRelay,
   EntryPoint,
-  RelayOperatingMode
+  RelayOperatingMode,
 } from "shogun-core/contracts";
 
 // Initialize contract instances
 const registry = new Registry({
-  registryAddress: "0x1234...",  // Address of the Registry contract
-  providerUrl: "https://ethereum-rpc-url.com"  // Optional, or use a provider
+  registryAddress: "0x1234...", // Address of the Registry contract
+  providerUrl: "https://ethereum-rpc-url.com", // Optional, or use a provider
 });
 
 const entryPoint = new EntryPoint({
-  entryPointAddress: "0xabcd...",  // Address of the EntryPoint contract
+  entryPointAddress: "0xabcd...", // Address of the EntryPoint contract
   registryAddress: "0x1234...",
-  providerUrl: "https://ethereum-rpc-url.com"
+  providerUrl: "https://ethereum-rpc-url.com",
 });
 
 const relay = new SimpleRelay({
-  relayAddress: "0x7890...",  // Address of a specific Relay contract
+  relayAddress: "0x7890...", // Address of a specific Relay contract
   registryAddress: "0x1234...",
-  providerUrl: "https://ethereum-rpc-url.com"
+  providerUrl: "https://ethereum-rpc-url.com",
 });
 
 // Configure with a signer for transactions
@@ -461,18 +489,26 @@ const isActive = await entryPoint.checkSubscription(userAddress, relayAddress);
 console.log(`Subscription active: ${isActive}`);
 
 // Check if public key is registered
-const hasPubKey = await entryPoint.hasRegisteredPubKey(userAddress, relayAddress);
+const hasPubKey = await entryPoint.hasRegisteredPubKey(
+  userAddress,
+  relayAddress
+);
 console.log(`Public key registered: ${hasPubKey}`);
 
 // Get detailed subscription information
-const details = await entryPoint.getSubscriptionDetails(userAddress, relayAddress);
+const details = await entryPoint.getSubscriptionDetails(
+  userAddress,
+  relayAddress
+);
 if (details) {
-  console.log(`Subscription expires: ${new Date(Number(details.expires) * 1000)}`);
+  console.log(
+    `Subscription expires: ${new Date(Number(details.expires) * 1000)}`
+  );
   console.log(`Public key: ${details.pubKey}`);
 }
 
 // Calculate subscription cost before subscribing
-const { subscriptionCost, fee, totalCost } = 
+const { subscriptionCost, fee, totalCost } =
   await entryPoint.calculateSubscriptionCost(relayAddress, 3); // 3 months
 console.log(`Subscription: ${ethers.formatEther(subscriptionCost)} ETH`);
 console.log(`Fee: ${ethers.formatEther(fee)} ETH`);
@@ -531,7 +567,7 @@ The Relay contract supports two operating modes:
 const mode = await relay.getOperatingMode();
 if (mode === RelayOperatingMode.SINGLE) {
   console.log("Relay is in SINGLE mode");
-  
+
   // Direct subscription (bypasses EntryPoint)
   const directTx = await relay.subscribe(
     3, // 3 months
@@ -539,11 +575,11 @@ if (mode === RelayOperatingMode.SINGLE) {
     { value: ethers.parseEther("0.03") }
   );
   await directTx.wait();
-  
+
   // Check subscription directly on relay
   const isSubscribed = await relay.isSubscriptionActive(userAddress);
   console.log(`Direct subscription active: ${isSubscribed}`);
-  
+
   // Get subscription info
   const subInfo = await relay.getUserSubscriptionInfo(userAddress);
   console.log("Subscription info:", subInfo);
@@ -573,7 +609,7 @@ await setEntryPointTx.wait();
 
 // Verify Protocol configuration
 const relayMode = await relay.getRelayMode();
-console.log(`Mode: ${relayMode.mode === 1 ? 'PROTOCOL' : 'SINGLE'}`);
+console.log(`Mode: ${relayMode.mode === 1 ? "PROTOCOL" : "SINGLE"}`);
 console.log(`Registry: ${relayMode.registryAddress}`);
 console.log(`EntryPoint: ${relayMode.entryPointAddress}`);
 console.log(`Registered: ${relayMode.isRegistered}`);
@@ -588,7 +624,7 @@ const registerTx = await registry.registerRelay(
   "https://your-relay-url.com",
   JSON.stringify({
     name: "Your Relay Service",
-    description: "Description of your relay service"
+    description: "Description of your relay service",
   })
 );
 await registerTx.wait();
@@ -599,7 +635,7 @@ const updateTx = await registry.updateRelay(
   "https://new-url.com",
   JSON.stringify({
     name: "Updated Relay Service",
-    description: "New description"
+    description: "New description",
   })
 );
 await updateTx.wait();
@@ -649,7 +685,7 @@ import {
   getRelayPerformance,
   getNetworkSummary,
   subscribeToRelayEvents,
-  RelayEventType
+  RelayEventType,
 } from "shogun-core/contracts";
 
 // Get all relay URLs from the registry
@@ -661,7 +697,7 @@ const pubKeys = await getRegisteredPubKeys(registry, entryPoint);
 console.log("Registered public keys:", pubKeys);
 
 // Get subscription activity history
-const history = await getSubscriptionHistory(entryPoint, 'month');
+const history = await getSubscriptionHistory(entryPoint, "month");
 console.log("Subscription history:", history);
 
 // Check relay performance
@@ -679,7 +715,7 @@ console.log(`Average price: ${summary.averagePrice} ETH`);
 const unsubscribe = subscribeToRelayEvents(registry, (event) => {
   console.log(`Event: ${event.type}`);
   console.log(`Time: ${new Date(event.timestamp)}`);
-  
+
   if (event.type === RelayEventType.NEW_SUBSCRIPTION) {
     console.log(`User: ${event.userAddress}`);
     console.log(`Relay: ${event.relayAddress}`);
@@ -700,21 +736,25 @@ import { RelayMembershipVerifier } from "shogun-core/contracts";
 // Create a verifier instance
 const verifier = new RelayMembershipVerifier({
   contractAddress: relayAddress,
-  providerUrl: "https://ethereum-rpc-url.com"
+  providerUrl: "https://ethereum-rpc-url.com",
 });
 
 // Verify if an address is authorized
 const isAuthorized = await verifier.isAddressAuthorized(userAddress);
-console.log(`User is ${isAuthorized ? 'authorized' : 'unauthorized'}`);
+console.log(`User is ${isAuthorized ? "authorized" : "unauthorized"}`);
 
 // Verify if a public key is authorized
 const isPubKeyAuthorized = await verifier.isPublicKeyAuthorized(publicKeyHex);
-console.log(`Public key is ${isPubKeyAuthorized ? 'authorized' : 'unauthorized'}`);
+console.log(
+  `Public key is ${isPubKeyAuthorized ? "authorized" : "unauthorized"}`
+);
 
 // Get detailed user information
 const userInfo = await verifier.getUserInfo(userAddress);
 if (userInfo) {
-  console.log(`Subscription expires: ${new Date(Number(userInfo.expires) * 1000)}`);
+  console.log(
+    `Subscription expires: ${new Date(Number(userInfo.expires) * 1000)}`
+  );
   console.log(`Public key: ${userInfo.pubKey}`);
 }
 ```
@@ -743,10 +783,12 @@ For more details on the Stealth Payment integration, refer to the StealthKeyRegi
 When using the Shogun Relay Protocol, be aware of these security considerations:
 
 1. **Public Key Management**
+
    - Store public keys securely and never reuse them across different services
    - Validate key length and format before submission (32-128 bytes)
 
 2. **Contract Interactions**
+
    - Always verify relay status before subscription
    - Double-check subscription costs by calling calculation functions
    - Ensure sufficient funds for subscription plus fees
@@ -760,7 +802,7 @@ When using the Shogun Relay Protocol, be aware of these security considerations:
 ## Contract Addresses
 
 | Network | Registry | EntryPoint |
-|---------|----------|------------|
+| ------- | -------- | ---------- |
 | Mainnet | TBD      | TBD        |
 | Goerli  | TBD      | TBD        |
 | Sepolia | TBD      | TBD        |
@@ -797,6 +839,7 @@ This architecture ensures standardized relay services while maintaining decentra
 ### EntryPoint Service Fees
 
 The EntryPoint contract charges a service fee for each subscription processed through it. This fee is:
+
 - Configurable by the EntryPoint owner (up to 10%)
 - Calculated as a percentage of the subscription cost
 - Added to the total amount required for subscription
@@ -804,6 +847,7 @@ The EntryPoint contract charges a service fee for each subscription processed th
 - Withdrawable by the contract owner
 
 Fees serve multiple purposes:
+
 1. Sustaining protocol development and maintenance
 2. Preventing spam and abuse of the protocol
 3. Motivating relay owners to integrate with the protocol
@@ -815,14 +859,17 @@ The current fee can be checked by calling `serviceFeePercentage()` on the EntryP
 ### Common Issues
 
 1. **Insufficient Funds**
+
    - Always calculate the total cost (including fees) before subscribing
    - Use the calculation functions (`calculateSubscriptionCost`, etc.) to get the exact amount needed
 
 2. **Invalid Relay Address**
+
    - When subscribing via URL, verify the relay address is correct and active
    - Use `registry.findRelayByUrl()` to validate URLs before subscription
 
 3. **Relay Not in Protocol Mode**
+
    - If subscribing through EntryPoint, ensure the relay is in PROTOCOL mode
    - Relay owners must call `setEntryPoint` with `enableProtocolMode = true`
 
@@ -831,9 +878,18 @@ The current fee can be checked by calling `serviceFeePercentage()` on the EntryP
    - Verify relay registration status with `registry.isRegisteredRelay()`
    - Ensure public keys meet the length requirements (32-128 bytes)
 
+## Deployments
+
+### Optimism Sepolia
+
+- Protocol#Registry : 0x4856C1238040C2b32d4815a71602712E1867D6Ed
+- Protocol#Relay : 0x6be800967Ad9147080ae384C5BE4E57Bd062D360 (First deployed)
+- Protocol#EntryPoint : 0xFE12895baf9BC245678c3f391A64B74778CDFE01
+
 ### Support Resources
 
 For additional assistance, refer to:
+
 - GitHub Issues: [Issues](https://github.com/your-org/shogun-contracts/issues)
 - Documentation: [Docs](https://your-org.github.io/shogun-contracts/)
 - Community Forum: [Discourse](https://community.your-org.com)
