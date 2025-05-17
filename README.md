@@ -1,4 +1,4 @@
-# 📄 Shogun Contracts
+# Shogun Contracts 📄
 
 A decentralized protocol for managing subscription-based relay services on Ethereum. The protocol allows relay service providers to register their services and users to subscribe to them using a streamlined subscription system.
 
