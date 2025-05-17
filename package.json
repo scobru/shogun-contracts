@@ -1,10 +1,9 @@
 {
   "name": "shogun-contracts",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scripts": {
     "chain": "npx hardhat node",
     "deploy:local": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network localhost",
-    "deploy:sepolia": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network sepolia --verify",
     "deploy:optimismSepolia": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network optimismSepolia --verify"
   },
   "author": "scobru",

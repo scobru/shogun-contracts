@@ -7,7 +7,15 @@ import Gun from "gun";
 import SEA from "gun/sea";
 import axios from "axios";
 
-import  localDeployments from "../ignition/deployments/chain-31337/deployed_addresses.json";
+import localDeployments from "../ignition/deployments/chain-11155420/deployed_addresses.json";
+
+// Define the type for deployment addresses to avoid implicit any errors
+interface DeploymentAddresses {
+  "Protocol#Registry": string;
+  "Protocol#Relay": string;
+  "Protocol#EntryPoint": string;
+  [key: string]: string; // Allow for additional contract names
+}
 
 dotenv.config();
 
@@ -170,14 +178,25 @@ async function preAuthorizeKey(pubKey: string): Promise<{success: boolean, token
     };
   }
 }
-
 async function main() {
-  // Lettura delle variabili d'ambiente
-
-
-  const individualRelay = localDeployments["Network#SimpleRelay"]
+  // Cast the deployments to the correct type
+  const deployments = localDeployments as unknown as DeploymentAddresses;
+  
+  // Get both relay and entry point addresses
+  const relayAddress = deployments["Protocol#Relay"];
+  const entryPointAddress = deployments["Protocol#EntryPoint"];
+  
+  if (!relayAddress || !entryPointAddress) {
+    console.error("Relay or EntryPoint contract addresses not found in deployments");
+    console.log("Available contracts:", Object.keys(deployments).join(", "));
+    process.exit(1);
+  }
+  
+  console.log(`Relay address: ${relayAddress}`);
+  console.log(`EntryPoint address: ${entryPointAddress}`);
+  
   const months = parseInt(process.env.SUBSCRIBE_MONTHS || "1");
-  const privateKey = process.env.USER_PRIVATE_KEY as string;
+  const privateKey = process.env.PRIVATE_KEY as string;
 
   const gun = Gun({
     peers: ["http://localhost:8765/gun"],
@@ -192,30 +211,37 @@ async function main() {
   let pubKey = pair.pub;
   console.log(`Coppia di chiavi generata. Chiave pubblica: ${pubKey}`);
 
-  if (!individualRelay || !privateKey) {
-    console.error(
-      "Impostare in .env: USER_PRIVATE_KEY"
-    );
+  if (!privateKey) {
+    console.error("Impostare in .env: PRIVATE_KEY");
     process.exit(1);
   }
-
-  console.log(`Usando contratto all'indirizzo: ${individualRelay}`);
 
   // Provider e signer
   const provider = ethers.provider;
   const wallet = new ethers.Wallet(privateKey, provider);
+  console.log(`Utilizzo wallet con indirizzo: ${wallet.address}`);
 
-  // Contract instance
-  const individualRelayAbi = [
+  // Get price from Relay contract first
+  const relayAbi = [
     "function pricePerMonth() view returns (uint256)",
-    "function subscribe(uint256 months, bytes calldata pubKey) external payable",
+    "function subscribe(uint256 _months, bytes calldata _pubKey) external payable",
+    "function isSubscriptionActive(address _user) external view returns (bool)"
   ];
-  const individualRelayContract = new ethers.Contract(individualRelay, individualRelayAbi, wallet);
+  const relayContract = new ethers.Contract(relayAddress, relayAbi, wallet);
+
+  // EntryPoint contract instance with enhanced ABI
+  const entryPointAbi = [
+    "function subscribeDirect(address _relayAddress, uint256 _months, bytes calldata _pubKey) external payable",
+    "function calculateSubscriptionCost(address _relayAddress, uint256 _months) external view returns (uint256 subscriptionCost, uint256 fee, uint256 totalCost)",
+    "function serviceFeePercentage() external view returns (uint256)",
+    "function checkSubscription(address _user, address _relayAddress) external view returns (bool)"
+  ];
+  const entryPointContract = new ethers.Contract(entryPointAddress, entryPointAbi, wallet);
 
   try {
     // Calcola il valore da inviare
-    console.log("Tentativo di lettura del prezzo per mese...");
-    const price: bigint = await individualRelayContract.pricePerMonth();
+    /* console.log("Tentativo di lettura del prezzo per mese dal Relay contract...");
+    const price: bigint = await relayContract.pricePerMonth();
     const total: bigint = price * BigInt(months);
 
     console.log(
@@ -224,25 +250,68 @@ async function main() {
       )} ETH`
     );
 
+    // Calcola il costo tramite EntryPoint (include fee)
+    console.log("Calcolo del costo totale tramite EntryPoint (include commissioni)...");
+    const [subscriptionCost, fee, totalCost] = await entryPointContract.calculateSubscriptionCost(
+      relayAddress,
+      months
+    );
+    
+    console.log(`Costi calcolati da EntryPoint:`);
+    console.log(`- Subscription cost: ${ethers.formatEther(subscriptionCost)} ETH`);
+    console.log(`- Fee: ${ethers.formatEther(fee)} ETH`);
+    console.log(`- Total cost: ${ethers.formatEther(totalCost)} ETH`);
+    
+    // Aggiorna l'importo totale con quello calcolato dall'EntryPoint
+    const finalTotal = totalCost;
+
     // Converti la pubKey di Gun in formato hex per il contratto
     console.log("Conversione della chiave pubblica per il contratto...");
     const hexPubKey = gunPubKeyToHex(pubKey);
-    console.log(
-      `Chiave pubblica convertita: 0x${hexPubKey.substring(0, 20)}...`
-    );
+    
+    // Prepara i dati per il contratto - è importante usare il formato corretto per bytes in ethers v6
+    const pubKeyForContract = `0x${hexPubKey}`;
+    console.log(`Chiave pubblica convertita per il contratto: ${pubKeyForContract.substring(0, 42)}...`);
+    
+    // Debug dei parametri di chiamata
+    console.log("Parametri per EntryPoint.subscribeDirect:");
+    console.log(`- Relay address: ${relayAddress}`);
+    console.log(`- Months: ${months}`);
+    console.log(`- PubKey (${(pubKeyForContract.length-2)/2} bytes): ${pubKeyForContract.substring(0, 42)}...`);
+    console.log(`- Value: ${ethers.formatEther(finalTotal)} ETH`);
+    
+    try {
+      // Try a static call first to check if the call would succeed
+      console.log("Esecuzione di static call per verificare i parametri...");
+      await entryPointContract.subscribeDirect.staticCall(
+        relayAddress,
+        months,
+        pubKeyForContract,
+        { value: finalTotal }
+      );
+      console.log("Static call successful, proceeding with transaction");
+    } catch (staticError: any) {
+      console.warn("Static call failed, but proceeding anyway:", staticError.reason || staticError.message);
+      // Continue anyway - the static call might fail for reasons that don't affect the actual transaction
+    }
 
-    // Converte da hex a bytes per il contratto
-    const pubkeyBytes = hexToBytes(hexPubKey);
-    console.log(
-      `Inviando chiave pubblica di ${pubkeyBytes.length} bytes al contratto`
+    // Execute the transaction
+    console.log("Chiamando EntryPoint.subscribeDirect() con relay address:", relayAddress);
+    const tx = await entryPointContract.subscribeDirect(
+      relayAddress,
+      months,
+      pubKeyForContract,
+      { value: finalTotal }
     );
-
-    const tx = await individualRelayContract.subscribe(months, pubkeyBytes, {
-      value: total,
-    });
+    
+    console.log(`Transazione inviata: ${tx.hash}`);
+    console.log("In attesa di conferma...");
+    
     const receipt = await tx.wait();
-
-    console.log("Subscribe eseguita, tx hash:", receipt.hash);
+    console.log("Subscription completata con successo!");
+    console.log(`- Transaction hash: ${receipt.hash}`);
+    console.log(`- Block: ${receipt.blockNumber}`);
+    console.log(`- Gas used: ${receipt.gasUsed.toString()}`); */
 
     // Pre-authorize this key with the relay and get a JWT token if possible
     authResult = await preAuthorizeKey(pubKey);
@@ -252,9 +321,29 @@ async function main() {
       );
       // Continue anyway and try
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Errore durante l'interazione con il contratto:");
-    console.error(error);
+    
+    // Log dettagliato dell'errore per il debug
+    if (error.receipt) {
+      console.error("Transaction failed with receipt:", {
+        txHash: error.receipt.hash,
+        blockNumber: error.receipt.blockNumber,
+        status: error.receipt.status,
+        gasUsed: error.receipt.gasUsed.toString()
+      });
+    }
+    
+    if (error.reason) {
+      console.error("Revert reason:", error.reason);
+    } else if (error.data) {
+      console.error("Error data:", error.data);
+    } else {
+      // Try to decode a custom error from the transaction
+      console.error("Unknown error:", error.message);
+    }
+    
+    console.error("Full error:", error);
     process.exit(1);
   }
 
@@ -304,7 +393,7 @@ async function main() {
         // Adds headers for put
         ctx.headers = {
           // Usa il JWT token se disponibile, altrimenti fallback al token di sistema
-          token: authResult.token,
+          Authorization: authResult?.token ? `Bearer ${authResult.token}` : undefined
         };
         to.next(ctx); // pass to next middleware
       });
