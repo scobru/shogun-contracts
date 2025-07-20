@@ -1,0 +1,5 @@
+{
+  "Protocol#RelayPaymentRouter": "0xeF579165f21f33CE9768592Bf76FFF0185C82C91",
+  "Protocol#PayamentForwarder": "0x885CD20Bb6C084808004449bC78392450fe11f98",
+  "Protocol#StealthKeyRegistry": "0xDD322f9230A04357619dCC307BB5550FBD782D29"
+}
