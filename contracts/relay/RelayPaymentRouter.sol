@@ -18,7 +18,6 @@ contract RelayPaymentRouter {
         uint256 endTime;
         uint256 amountPaid;
         uint256 mbAllocated; // MB allocati per questo mese
-        uint256 mbUsed; // MB già utilizzati
         bool isActive;
     }
 
@@ -61,12 +60,6 @@ contract RelayPaymentRouter {
     event SubscriptionExpired(address indexed user, address indexed relay);
     event PaymentDistributed(address indexed relay, uint256 amount);
     event ContractFeeCollected(uint256 amount);
-    event MBUsed(
-        address user,
-        address relay,
-        uint256 mbUsed,
-        uint256 mbRemaining
-    );
 
     // Modificatori
     modifier onlyOwner() {
@@ -212,7 +205,6 @@ contract RelayPaymentRouter {
             endTime: endTime,
             amountPaid: msg.value,
             mbAllocated: mbAllocated,
-            mbUsed: 0,
             isActive: true
         });
 
@@ -287,32 +279,6 @@ contract RelayPaymentRouter {
     }
 
     /**
-     * @dev Registra l'uso di MB per un utente (chiamabile solo dai relay)
-     * @param _user Indirizzo dell'utente
-     * @param _mbUsed MB utilizzati
-     */
-    function recordMBUsage(
-        address _user,
-        uint256 _mbUsed
-    ) external onlyActiveRelay {
-        require(_mbUsed > 0, "MB used must be greater than 0");
-        require(
-            isSubscriptionActive(_user, msg.sender),
-            "No active subscription found for this user"
-        );
-
-        Subscription storage sub = subscriptions[_user][msg.sender];
-        require(
-            sub.mbUsed + _mbUsed <= sub.mbAllocated,
-            "MB usage would exceed allocation"
-        );
-
-        sub.mbUsed += _mbUsed;
-
-        emit MBUsed(_user, msg.sender, _mbUsed, sub.mbAllocated - sub.mbUsed);
-    }
-
-    /**
      * @dev Controlla se un utente ha una sottoscrizione attiva con un relay
      * @param _user Indirizzo dell'utente
      * @param _relayAddress Indirizzo del relay
@@ -324,42 +290,6 @@ contract RelayPaymentRouter {
     ) public view returns (bool) {
         Subscription memory sub = subscriptions[_user][_relayAddress];
         return sub.isActive && block.timestamp <= sub.endTime;
-    }
-
-    /**
-     * @dev Controlla se un utente ha MB disponibili
-     * @param _user Indirizzo dell'utente
-     * @param _relayAddress Indirizzo del relay
-     * @param _mbRequired MB richiesti
-     * @return bool True se ha MB sufficienti
-     */
-    function hasAvailableMB(
-        address _user,
-        address _relayAddress,
-        uint256 _mbRequired
-    ) public view returns (bool) {
-        Subscription memory sub = subscriptions[_user][_relayAddress];
-        return
-            sub.isActive &&
-            block.timestamp <= sub.endTime &&
-            (sub.mbAllocated - sub.mbUsed) >= _mbRequired;
-    }
-
-    /**
-     * @dev Ottieni i MB rimanenti per un utente
-     * @param _user Indirizzo dell'utente
-     * @param _relayAddress Indirizzo del relay
-     * @return uint256 MB rimanenti
-     */
-    function getRemainingMB(
-        address _user,
-        address _relayAddress
-    ) public view returns (uint256) {
-        Subscription memory sub = subscriptions[_user][_relayAddress];
-        if (!sub.isActive || block.timestamp > sub.endTime) {
-            return 0;
-        }
-        return sub.mbAllocated > sub.mbUsed ? sub.mbAllocated - sub.mbUsed : 0;
     }
 
     /**
@@ -378,22 +308,15 @@ contract RelayPaymentRouter {
             uint256 endTime,
             uint256 amountPaid,
             uint256 mbAllocated,
-            uint256 mbUsed,
-            uint256 mbRemaining,
             bool isActive
         )
     {
         Subscription memory sub = subscriptions[_user][_relayAddress];
-        uint256 remaining = sub.mbAllocated > sub.mbUsed
-            ? sub.mbAllocated - sub.mbUsed
-            : 0;
         return (
             sub.startTime,
             sub.endTime,
             sub.amountPaid,
             sub.mbAllocated,
-            sub.mbUsed,
-            remaining,
             isSubscriptionActive(_user, _relayAddress)
         );
     }

@@ -3,12 +3,12 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const PaymentRouter = buildModule("PaymentRouter", (m) => {
+const Relay = buildModule("Relay", (m) => {
   // Deploy RelayPaymentRouter per la gestione dei relay e sottoscrizioni
   const relayPaymentRouter = m.contract("RelayPaymentRouter");
 
   // Registra un relay di test nel RelayPaymentRouter
-  const registerTestRelay = m.call(
+  m.call(
     relayPaymentRouter,
     "registerRelay",
     [
@@ -25,4 +25,4 @@ const PaymentRouter = buildModule("PaymentRouter", (m) => {
   };
 });
 
-export default PaymentRouter;
+export default Relay;

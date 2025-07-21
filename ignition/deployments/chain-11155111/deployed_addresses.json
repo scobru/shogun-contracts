@@ -1,5 +1,7 @@
 {
-  "Protocol#RelayPaymentRouter": "0xeF579165f21f33CE9768592Bf76FFF0185C82C91",
-  "Protocol#PayamentForwarder": "0x885CD20Bb6C084808004449bC78392450fe11f98",
-  "Protocol#StealthKeyRegistry": "0xDD322f9230A04357619dCC307BB5550FBD782D29"
+  "Recovery#PairRecovery": "0x9f7b06F48E87451d54F7D7D146218645C99cFF7c",
+  "Relay#RelayPaymentRouter": "0x75cc10AD303209a10b762D73bD2f5BE71da12c99",
+  "Stealth#PayamentForwarder": "0xDa628DD78b1fb787Db5504d0b793AA412F8Dff10",
+  "Stealth#StealthKeyRegistry": "0xc0BAFd827b0829c8cB3dD4dCD7D34406950b3893",
+  "Security#Integrity": "0x0b5E51aC6f26b39d7BC5A0B2e0083957fbFF81CD"
 }

@@ -4,7 +4,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther } from "ethers";
 
-const StealthAddress = buildModule("StealthAddress", (m) => {
+const Stealth = buildModule("Stealth", (m) => {
   // Deploy StealthKeyRegistry per la gestione delle chiavi stealth
   const stealthKeyRegistry = m.contract("StealthKeyRegistry");
 
@@ -15,20 +15,20 @@ const StealthAddress = buildModule("StealthAddress", (m) => {
   ]);
 
   // Configura il toll collector nel PaymentForwarder
-  const setTollCollector = m.call(paymentForwarder, "setTollCollector", [
+  m.call(paymentForwarder, "setTollCollector", [
     m.getAccount(0), // Imposta il primo account come toll collector
   ]);
 
   // Configura il toll receiver nel PaymentForwarder
-  const setTollReceiver = m.call(paymentForwarder, "setTollReceiver", [
+  m.call(paymentForwarder, "setTollReceiver", [
     m.getAccount(0), // Imposta il primo account come toll receiver
   ]);
 
   // Return the main contract instances
   return {
-     stealthKeyRegistry,
-     paymentForwarder,
+    stealthKeyRegistry,
+    paymentForwarder,
   };
 });
 
-export default StealthAddress;
+export default Stealth;
