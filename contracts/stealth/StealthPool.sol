@@ -370,13 +370,14 @@ contract StealthPool is ReentrancyGuard, Ownable {
                 // Indice pari: il sibling è a destra
                 if (currentIndex + 1 < currentLevel.length) {
                     proof[proofIndex] = currentLevel[currentIndex + 1];
+                    proofIndex++;
                 }
             } else {
                 // Indice dispari: il sibling è a sinistra
                 proof[proofIndex] = currentLevel[currentIndex - 1];
+                proofIndex++;
             }
 
-            proofIndex++;
             currentIndex = currentIndex / 2;
 
             // Calcola il livello successivo

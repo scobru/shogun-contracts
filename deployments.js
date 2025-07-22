@@ -4,7 +4,7 @@
 const DEPLOYMENTS = {
   "sepolia": {
     "Stealth#StealthPool": {
-      "address": "0x953a5445a454130dB900F71031885163C0d251D3",
+      "address": "0x7E0C8c90EF384622dff9CF836125E20D76F003d1",
       "abi": [
         {
           "inputs": [
