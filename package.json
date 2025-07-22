@@ -1,10 +1,13 @@
 {
   "name": "shogun-contracts",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "scripts": {
     "chain": "npx hardhat node",
     "deploy:local": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network localhost",
-    "deploy:optimismSepolia": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network optimismSepolia --verify",
+    "deploy:sepolia": "yarn hardhat ignition deploy ./ignition/modules/Protocol.ts --network sepolia --verify",
+    "deploy:stealthPool:local": "yarn hardhat ignition deploy ./ignition/modules/stealthPool.ts --network localhost",
+    "deploy:stealthPool:sepolia": "yarn hardhat ignition deploy ./ignition/modules/stealthPool.ts --network sepolia --verify",
+    "deploy:stealthPool:advanced:sepolia": "yarn hardhat ignition deploy ./ignition/modules/stealthPoolAdvanced.ts --network sepolia --verify",
     "post-deployment": "ts-node scripts/post-deployment.ts"
   },
   "author": "scobru",
