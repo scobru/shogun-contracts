@@ -4,6 +4,5 @@
   "Stealth#PayamentForwarder": "0xDa628DD78b1fb787Db5504d0b793AA412F8Dff10",
   "Stealth#StealthKeyRegistry": "0xc0BAFd827b0829c8cB3dD4dCD7D34406950b3893",
   "Security#Integrity": "0x0b5E51aC6f26b39d7BC5A0B2e0083957fbFF81CD",
-  "StealthPool#MerkleTreeManager": "0x4dF1C272FaBDD4288582fe1DD1827F8037d7cD8f",
-  "StealthPool#StealthPool": "0x6Af43130498C27b9B309AA29EC24eFAdAa88faFD"
+  "Stealth#StealthPool": "0xf397c0fDFDc28788834dEa317469261bE5B1CdC8"
 }

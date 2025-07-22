@@ -1862,206 +1862,8 @@ const DEPLOYMENTS = {
         }
       ]
     },
-    "StealthPool#MerkleTreeManager": {
-      "address": "0x4dF1C272FaBDD4288582fe1DD1827F8037d7cD8f",
-      "abi": [
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "root",
-              "type": "bytes32"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "leafCount",
-              "type": "uint256"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "timestamp",
-              "type": "uint256"
-            }
-          ],
-          "name": "MerkleRootCalculated",
-          "type": "event"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes",
-              "name": "_publicKey",
-              "type": "bytes"
-            }
-          ],
-          "name": "calculateCommitment",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32[]",
-              "name": "_commitments",
-              "type": "bytes32[]"
-            }
-          ],
-          "name": "calculateMerkleRoot",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes[]",
-              "name": "_publicKeys",
-              "type": "bytes[]"
-            }
-          ],
-          "name": "calculateMerkleRootFromPublicKeys",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32[]",
-              "name": "_commitments",
-              "type": "bytes32[]"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "_targetCommitment",
-              "type": "bytes32"
-            }
-          ],
-          "name": "generateMerkleProof",
-          "outputs": [
-            {
-              "internalType": "bytes32[]",
-              "name": "proof",
-              "type": "bytes32[]"
-            },
-            {
-              "internalType": "uint256",
-              "name": "index",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes[]",
-              "name": "_publicKeys",
-              "type": "bytes[]"
-            },
-            {
-              "internalType": "bytes",
-              "name": "_targetPublicKey",
-              "type": "bytes"
-            }
-          ],
-          "name": "generateMerkleProofForPublicKey",
-          "outputs": [
-            {
-              "internalType": "bytes32[]",
-              "name": "proof",
-              "type": "bytes32[]"
-            },
-            {
-              "internalType": "uint256",
-              "name": "index",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32[]",
-              "name": "_commitments",
-              "type": "bytes32[]"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "_targetCommitment",
-              "type": "bytes32"
-            }
-          ],
-          "name": "isCommitmentInList",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32[]",
-              "name": "_proof",
-              "type": "bytes32[]"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "_root",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "_leaf",
-              "type": "bytes32"
-            }
-          ],
-          "name": "verifyMerkleProof",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        }
-      ]
-    },
-    "StealthPool#StealthPool": {
-      "address": "0x6Af43130498C27b9B309AA29EC24eFAdAa88faFD",
+    "Stealth#StealthPool": {
+      "address": "0xf397c0fDFDc28788834dEa317469261bE5B1CdC8",
       "abi": [
         {
           "inputs": [
@@ -2069,11 +1871,6 @@ const DEPLOYMENTS = {
               "internalType": "uint256",
               "name": "_depositAmount",
               "type": "uint256"
-            },
-            {
-              "internalType": "address",
-              "name": "_merkleManager",
-              "type": "address"
             }
           ],
           "stateMutability": "nonpayable",
@@ -2209,6 +2006,25 @@ const DEPLOYMENTS = {
         {
           "inputs": [
             {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "allCommitments",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
               "internalType": "bytes",
               "name": "_publicKey",
               "type": "bytes"
@@ -2220,25 +2036,6 @@ const DEPLOYMENTS = {
             }
           ],
           "name": "calculateCommitment",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes",
-              "name": "_publicKey",
-              "type": "bytes"
-            }
-          ],
-          "name": "calculateCommitmentFromPublicKey",
           "outputs": [
             {
               "internalType": "bytes32",
@@ -2281,6 +2078,43 @@ const DEPLOYMENTS = {
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "_commitment",
+              "type": "bytes32"
+            }
+          ],
+          "name": "generateMerkleProof",
+          "outputs": [
+            {
+              "internalType": "bytes32[]",
+              "name": "proof",
+              "type": "bytes32[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "index",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "getAllCommitments",
+          "outputs": [
+            {
+              "internalType": "bytes32[]",
+              "name": "",
+              "type": "bytes32[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "getBalance",
           "outputs": [
@@ -2288,6 +2122,38 @@ const DEPLOYMENTS = {
               "internalType": "uint256",
               "name": "",
               "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "getCommitmentCount",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "_commitment",
+              "type": "bytes32"
+            }
+          ],
+          "name": "isCommitmentRegistered",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -2333,19 +2199,6 @@ const DEPLOYMENTS = {
         },
         {
           "inputs": [],
-          "name": "merkleManager",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
           "name": "merkleRoot",
           "outputs": [
             {
@@ -2384,21 +2237,27 @@ const DEPLOYMENTS = {
           "type": "function"
         },
         {
-          "inputs": [],
-          "name": "renounceOwnership",
-          "outputs": [],
-          "stateMutability": "nonpayable",
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "name": "registeredCommitments",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "_newManager",
-              "type": "address"
-            }
-          ],
-          "name": "setMerkleManager",
+          "inputs": [],
+          "name": "renounceOwnership",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
@@ -2444,19 +2303,6 @@ const DEPLOYMENTS = {
             }
           ],
           "name": "transferOwnership",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "_newRoot",
-              "type": "bytes32"
-            }
-          ],
-          "name": "updateMerkleRoot",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"

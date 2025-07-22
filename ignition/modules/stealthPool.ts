@@ -4,24 +4,18 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther } from "ethers";
 
-const StealthPool = buildModule("StealthPool", (m) => {
-  // Deploy MerkleTreeManager per gestire i Merkle tree e le proof
-  const merkleTreeManager = m.contract("MerkleTreeManager");
-
-  // Deploy StealthPool con parametri configurabili
+const Stealth = buildModule("Stealth", (m) => {
+  // Deploy MerkleTreeManager per gestire i Merkle tree e le proof (opzionale, ora integrato in StealthPool)
+  // Deploy StealthPool con il nuovo costruttore semplificato
+  // Ora auto-genera la Merkle root e non ha bisogno di merkleManager
   const stealthPool = m.contract("StealthPool", [
     parseEther("1.0"), // depositAmount: 1 ETH per deposito
-    m.getAccount(0), // merkleManager: primo signer come merkle manager
   ]);
-
-  // Configura il merkle manager nel StealthPool (opzionale, già fatto nel costruttore)
-  // m.call(stealthPool, "setMerkleManager", [m.getAccount(0)]);
 
   // Return the main contract instances
   return {
-    merkleTreeManager,
     stealthPool,
   };
 });
 
-export default StealthPool;
+export default Stealth;
