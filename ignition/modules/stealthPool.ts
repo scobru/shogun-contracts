@@ -6,6 +6,7 @@ import { parseEther } from "ethers";
 
 const Stealth = buildModule("Stealth", (m) => {
   // Deploy MerkleTreeManager per gestire i Merkle tree e le proof (opzionale, ora integrato in StealthPool)
+
   // Deploy StealthPool con il nuovo costruttore semplificato
   // Ora auto-genera la Merkle root e non ha bisogno di merkleManager
   const stealthPool = m.contract("StealthPool", [

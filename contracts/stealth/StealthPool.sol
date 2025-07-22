@@ -352,13 +352,12 @@ contract StealthPool is ReentrancyGuard, Ownable {
     ) internal pure returns (bytes32[] memory) {
         require(_index < _commitments.length, "StealthPool: invalid index");
 
+        // Calcola la lunghezza della proof (altezza dell'albero - 1)
         uint256 proofLength = 0;
-        uint256 tempIndex = _index;
-
-        // Calcola la lunghezza della proof
-        while (tempIndex > 0 || tempIndex < _commitments.length - 1) {
+        uint256 tempLength = _commitments.length;
+        while (tempLength > 1) {
             proofLength++;
-            tempIndex = tempIndex / 2;
+            tempLength = (tempLength + 1) / 2;
         }
 
         bytes32[] memory proof = new bytes32[](proofLength);

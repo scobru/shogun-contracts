@@ -1,8 +1,3 @@
 {
-  "Recovery#PairRecovery": "0x9f7b06F48E87451d54F7D7D146218645C99cFF7c",
-  "Relay#RelayPaymentRouter": "0x75cc10AD303209a10b762D73bD2f5BE71da12c99",
-  "Stealth#PayamentForwarder": "0xDa628DD78b1fb787Db5504d0b793AA412F8Dff10",
-  "Stealth#StealthKeyRegistry": "0xc0BAFd827b0829c8cB3dD4dCD7D34406950b3893",
-  "Security#Integrity": "0x0b5E51aC6f26b39d7BC5A0B2e0083957fbFF81CD",
-  "Stealth#StealthPool": "0xf397c0fDFDc28788834dEa317469261bE5B1CdC8"
+  "Stealth#StealthPool": "0x953a5445a454130dB900F71031885163C0d251D3"
 }
