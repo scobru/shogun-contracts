@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -119,12 +118,8 @@ contract StealthPool is ReentrancyGuard, Ownable {
         // 3. Verifica che il nonce non sia già stato utilizzato
         require(!usedNonces[_nonce], "StealthPool: nonce already used");
 
-        // 4. Verifica la Merkle proof
-        bool isValidProof = MerkleProof.verify(
-            _merkleProof,
-            merkleRoot,
-            _commitment
-        );
+        // 4. Verifica la Merkle proof usando la nostra implementazione personalizzata
+        bool isValidProof = verifyMerkleProof(_commitment, _merkleProof);
         require(isValidProof, "StealthPool: invalid Merkle proof");
 
         // 5. Marca il commitment come speso e il nonce come utilizzato
@@ -396,7 +391,93 @@ contract StealthPool is ReentrancyGuard, Ownable {
             currentLevel = nextLevel;
         }
 
-        return proof;
+        // Ridimensiona l'array proof per rimuovere gli elementi vuoti
+        bytes32[] memory finalProof = new bytes32[](proofIndex);
+        for (uint256 i = 0; i < proofIndex; i++) {
+            finalProof[i] = proof[i];
+        }
+
+        return finalProof;
+    }
+
+    /**
+     * @dev Verifica una Merkle proof per un commitment specifico
+     * @param _commitment Il commitment da verificare
+     * @param _proof La Merkle proof da verificare
+     * @return True se la proof è valida
+     */
+    function verifyMerkleProof(
+        bytes32 _commitment,
+        bytes32[] calldata _proof
+    ) internal view returns (bool) {
+        bytes32 computedHash = _commitment;
+        uint256 proofIndex = 0;
+
+        // Trova l'indice del commitment nell'array
+        uint256 commitmentIndex = type(uint256).max;
+        for (uint256 i = 0; i < allCommitments.length; i++) {
+            if (allCommitments[i] == _commitment) {
+                commitmentIndex = i;
+                break;
+            }
+        }
+
+        if (commitmentIndex == type(uint256).max) {
+            return false;
+        }
+
+        // Calcola il percorso nell'albero
+        uint256 currentIndex = commitmentIndex;
+        bytes32[] memory currentLevel = allCommitments;
+
+        while (currentLevel.length > 1) {
+            if (currentIndex % 2 == 0) {
+                // Indice pari: il sibling è a destra
+                if (currentIndex + 1 < currentLevel.length) {
+                    if (proofIndex >= _proof.length) {
+                        return false;
+                    }
+                    computedHash = keccak256(
+                        abi.encodePacked(computedHash, _proof[proofIndex])
+                    );
+                    proofIndex++;
+                }
+                // Se non c'è sibling a destra, non fare nulla (foglia singola)
+            } else {
+                // Indice dispari: il sibling è a sinistra
+                if (proofIndex >= _proof.length) {
+                    return false;
+                }
+                computedHash = keccak256(
+                    abi.encodePacked(_proof[proofIndex], computedHash)
+                );
+                proofIndex++;
+            }
+
+            currentIndex = currentIndex / 2;
+
+            // Calcola il livello successivo
+            bytes32[] memory nextLevel = new bytes32[](
+                (currentLevel.length + 1) / 2
+            );
+            for (uint256 i = 0; i < currentLevel.length; i += 2) {
+                if (i + 1 < currentLevel.length) {
+                    nextLevel[i / 2] = keccak256(
+                        abi.encodePacked(currentLevel[i], currentLevel[i + 1])
+                    );
+                } else {
+                    nextLevel[i / 2] = currentLevel[i];
+                }
+            }
+            currentLevel = nextLevel;
+        }
+
+        // Verifica che tutte le proof siano state utilizzate
+        if (proofIndex != _proof.length) {
+            return false;
+        }
+
+        return computedHash == merkleRoot;
     }
 
     // ======================================= Receive Function =======================================

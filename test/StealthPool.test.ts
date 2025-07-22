@@ -110,16 +110,17 @@ describe("StealthPool", function () {
 
     it("Should generate valid Merkle proofs", async function () {
       const [proof, index] = await stealthPool.generateMerkleProof(commitment1);
+      const proofArray = Array.from(proof);
 
       expect(index).to.equal(0);
-      expect(proof.length).to.be.greaterThan(0);
+      expect(proofArray.length).to.be.greaterThan(0);
 
       // Verify the proof manually by checking if the proof is not empty
       // The actual verification happens in the contract during withdrawal
-      expect(proof.length).to.be.greaterThan(0);
+      expect(proofArray.length).to.be.greaterThan(0);
 
       // Also verify that the proof contains valid hex strings
-      for (const proofElement of proof) {
+      for (const proofElement of proofArray) {
         expect(proofElement).to.match(/^0x[a-fA-F0-9]{64}$/);
       }
     });
@@ -140,6 +141,34 @@ describe("StealthPool", function () {
       expect(allCommitments[0]).to.equal(commitment1);
       expect(allCommitments[1]).to.equal(commitment2);
       expect(allCommitments[2]).to.equal(commitment3);
+    });
+
+    it("Should verify Merkle proof correctly", async function () {
+      // Generate proof for commitment1
+      const [proof, index] = await stealthPool.generateMerkleProof(commitment1);
+      const proofArray = Array.from(proof);
+
+      expect(index).to.equal(0);
+      expect(proofArray.length).to.be.greaterThan(0);
+
+      // Try to withdraw with the generated proof - this should work
+      const recipient = user2.address;
+      const nonce = ethers.keccak256(ethers.toUtf8Bytes("test nonce"));
+
+      // Send ETH to contract first
+      await user1.sendTransaction({
+        to: await stealthPool.getAddress(),
+        value: DEPOSIT_AMOUNT,
+      });
+
+      const initialBalance = await ethers.provider.getBalance(recipient);
+
+      await stealthPool
+        .connect(user1)
+        .withdraw(commitment1, nonce, recipient, proofArray);
+
+      const finalBalance = await ethers.provider.getBalance(recipient);
+      expect(finalBalance - initialBalance).to.equal(DEPOSIT_AMOUNT);
     });
   });
 
@@ -164,12 +193,13 @@ describe("StealthPool", function () {
 
     it("Should allow valid withdrawals", async function () {
       const [proof] = await stealthPool.generateMerkleProof(commitment);
+      const proofArray = Array.from(proof);
 
       const initialBalance = await ethers.provider.getBalance(recipient);
 
       await stealthPool
         .connect(user1)
-        .withdraw(commitment, nonce, recipient, proof);
+        .withdraw(commitment, nonce, recipient, proofArray);
 
       const finalBalance = await ethers.provider.getBalance(recipient);
       expect(finalBalance - initialBalance).to.equal(DEPOSIT_AMOUNT);
@@ -177,46 +207,50 @@ describe("StealthPool", function () {
 
     it("Should mark commitment as spent after withdrawal", async function () {
       const [proof] = await stealthPool.generateMerkleProof(commitment);
+      const proofArray = Array.from(proof);
 
       await stealthPool
         .connect(user1)
-        .withdraw(commitment, nonce, recipient, proof);
+        .withdraw(commitment, nonce, recipient, proofArray);
 
       expect(await stealthPool.isCommitmentSpent(commitment)).to.be.true;
     });
 
     it("Should mark nonce as used after withdrawal", async function () {
       const [proof] = await stealthPool.generateMerkleProof(commitment);
+      const proofArray = Array.from(proof);
 
       await stealthPool
         .connect(user1)
-        .withdraw(commitment, nonce, recipient, proof);
+        .withdraw(commitment, nonce, recipient, proofArray);
 
       expect(await stealthPool.isNonceUsed(nonce)).to.be.true;
     });
 
     it("Should reject withdrawal with spent commitment", async function () {
       const [proof] = await stealthPool.generateMerkleProof(commitment);
+      const proofArray = Array.from(proof);
 
       await stealthPool
         .connect(user1)
-        .withdraw(commitment, nonce, recipient, proof);
+        .withdraw(commitment, nonce, recipient, proofArray);
 
       const newNonce = ethers.keccak256(ethers.toUtf8Bytes("new nonce"));
 
       await expect(
         stealthPool
           .connect(user1)
-          .withdraw(commitment, newNonce, recipient, proof)
+          .withdraw(commitment, newNonce, recipient, proofArray)
       ).to.be.revertedWith("StealthPool: commitment already spent");
     });
 
     it("Should reject withdrawal with used nonce", async function () {
       const [proof] = await stealthPool.generateMerkleProof(commitment);
+      const proofArray = Array.from(proof);
 
       await stealthPool
         .connect(user1)
-        .withdraw(commitment, nonce, recipient, proof);
+        .withdraw(commitment, nonce, recipient, proofArray);
 
       const newCommitment = ethers.keccak256(
         ethers.toUtf8Bytes("new commitment")
@@ -228,13 +262,23 @@ describe("StealthPool", function () {
           newCommitment,
           nonce, // Same nonce
           recipient,
-          proof
+          proofArray
         )
       ).to.be.revertedWith("StealthPool: nonce already used");
     });
 
     it("Should reject withdrawal with invalid Merkle proof", async function () {
-      const invalidProof = [ethers.keccak256(ethers.toUtf8Bytes("invalid"))];
+      // Create a completely invalid proof with wrong format
+      const invalidProof = [
+        ethers.keccak256(ethers.toUtf8Bytes("completely wrong proof 1")),
+        ethers.keccak256(ethers.toUtf8Bytes("completely wrong proof 2")),
+      ];
+
+      // Send ETH to contract first
+      await user1.sendTransaction({
+        to: await stealthPool.getAddress(),
+        value: DEPOSIT_AMOUNT,
+      });
 
       await expect(
         stealthPool
@@ -243,13 +287,41 @@ describe("StealthPool", function () {
       ).to.be.revertedWith("StealthPool: invalid Merkle proof");
     });
 
-    it("Should reject withdrawal with zero recipient", async function () {
-      const [proof] = await stealthPool.generateMerkleProof(commitment);
+    it("Should reject withdrawal with proof that is too long", async function () {
+      // Generate a valid proof first
+      const [validProof] = await stealthPool.generateMerkleProof(commitment);
+      const validProofArray = Array.from(validProof);
+
+      // Create a proof that is too long by adding extra elements
+      const tooLongProof = [...validProofArray];
+      tooLongProof.push(
+        ethers.keccak256(ethers.toUtf8Bytes("extra proof element"))
+      );
+      tooLongProof.push(
+        ethers.keccak256(ethers.toUtf8Bytes("another extra element"))
+      );
+
+      // Send ETH to contract first
+      await user1.sendTransaction({
+        to: await stealthPool.getAddress(),
+        value: DEPOSIT_AMOUNT,
+      });
 
       await expect(
         stealthPool
           .connect(user1)
-          .withdraw(commitment, nonce, ethers.ZeroAddress, proof)
+          .withdraw(commitment, nonce, recipient, tooLongProof)
+      ).to.be.revertedWith("StealthPool: invalid Merkle proof");
+    });
+
+    it("Should reject withdrawal with zero recipient", async function () {
+      const [proof] = await stealthPool.generateMerkleProof(commitment);
+      const proofArray = Array.from(proof);
+
+      await expect(
+        stealthPool
+          .connect(user1)
+          .withdraw(commitment, nonce, ethers.ZeroAddress, proofArray)
       ).to.be.revertedWith("StealthPool: recipient cannot be zero");
     });
   });
@@ -361,12 +433,15 @@ describe("StealthPool", function () {
       );
       expect(index).to.equal(0);
 
+      // Convert proof to regular array to avoid readonly issues
+      const proofArray = Array.from(proof);
+
       // For a single commitment, the proof can be empty (length 0)
       // This is correct behavior for Merkle trees with only one leaf
-      console.log("Proof array:", proof);
+      console.log("Proof array:", proofArray);
 
       // Verify that the proof contains valid hex strings (if not empty)
-      for (const proofElement of proof) {
+      for (const proofElement of proofArray) {
         expect(proofElement).to.match(/^0x[a-fA-F0-9]{64}$/);
       }
 
@@ -385,7 +460,7 @@ describe("StealthPool", function () {
       console.log("Performing withdrawal...");
       const tx = await stealthPool
         .connect(user1)
-        .withdraw(commitment, nonce, recipient, proof);
+        .withdraw(commitment, nonce, recipient, proofArray);
 
       console.log("Withdrawal transaction sent, waiting for confirmation...");
       const receipt = await tx.wait();
@@ -421,6 +496,145 @@ describe("StealthPool", function () {
       expect(finalContractBalance).to.equal(0);
 
       console.log("=== Integration Test Completed Successfully ===");
+    });
+
+    it("Should handle 6 commitments correctly", async function () {
+      console.log("=== Testing with 6 commitments ===");
+
+      // Create 6 commitments
+      const commitments = [];
+      const nonces = [];
+      const users = [user1, user2, user3, owner];
+
+      for (let i = 0; i < 6; i++) {
+        const publicKey = ethers.toUtf8Bytes(`public key ${i}`);
+        const nonce = ethers.keccak256(ethers.toUtf8Bytes(`nonce ${i}`));
+        const commitment = await stealthPool.calculateCommitment(
+          publicKey,
+          nonce
+        );
+
+        commitments.push(commitment);
+        nonces.push(nonce);
+
+        // Register deposit
+        await stealthPool
+          .connect(users[i % users.length])
+          .registerDeposit(commitment);
+
+        // Send ETH to contract
+        await users[i % users.length].sendTransaction({
+          to: await stealthPool.getAddress(),
+          value: DEPOSIT_AMOUNT,
+        });
+      }
+
+      console.log("Registered 6 deposits");
+      expect(await stealthPool.totalDeposits()).to.equal(6);
+
+      // Test withdrawal for each commitment
+      for (let i = 0; i < 6; i++) {
+        console.log(`Testing withdrawal for commitment ${i}`);
+
+        const [proof, index] = await stealthPool.generateMerkleProof(
+          commitments[i]
+        );
+        console.log(
+          `Commitment ${i}: index=${index}, proof length=${proof.length}`
+        );
+
+        // Convert proof to regular array to avoid readonly issues
+        const proofArray = Array.from(proof);
+
+        // Verify proof is valid
+        expect(index).to.equal(i);
+        expect(proofArray.length).to.be.greaterThan(0);
+
+        // Perform withdrawal
+        const recipient = users[(i + 1) % users.length].address;
+        const initialBalance = await ethers.provider.getBalance(recipient);
+
+        await stealthPool
+          .connect(users[i % users.length])
+          .withdraw(commitments[i], nonces[i], recipient, proofArray);
+
+        const finalBalance = await ethers.provider.getBalance(recipient);
+        expect(finalBalance - initialBalance).to.equal(DEPOSIT_AMOUNT);
+
+        // Verify commitment is spent
+        expect(await stealthPool.isCommitmentSpent(commitments[i])).to.be.true;
+        expect(await stealthPool.isNonceUsed(nonces[i])).to.be.true;
+      }
+
+      console.log("=== 6 commitments test completed successfully ===");
+    });
+
+    it("Should handle odd number of commitments correctly", async function () {
+      console.log("=== Testing with odd number of commitments ===");
+
+      // Create 3 commitments
+      const commitments = [];
+      const nonces = [];
+      const users = [user1, user2, user3];
+
+      for (let i = 0; i < 3; i++) {
+        const publicKey = ethers.toUtf8Bytes(`odd public key ${i}`);
+        const nonce = ethers.keccak256(ethers.toUtf8Bytes(`odd nonce ${i}`));
+        const commitment = await stealthPool.calculateCommitment(
+          publicKey,
+          nonce
+        );
+
+        commitments.push(commitment);
+        nonces.push(nonce);
+
+        // Register deposit
+        await stealthPool.connect(users[i]).registerDeposit(commitment);
+
+        // Send ETH to contract
+        await users[i].sendTransaction({
+          to: await stealthPool.getAddress(),
+          value: DEPOSIT_AMOUNT,
+        });
+      }
+
+      console.log("Registered 3 deposits");
+      expect(await stealthPool.totalDeposits()).to.equal(3);
+
+      // Test withdrawal for each commitment
+      for (let i = 0; i < 3; i++) {
+        console.log(`Testing withdrawal for odd commitment ${i}`);
+
+        const [proof, index] = await stealthPool.generateMerkleProof(
+          commitments[i]
+        );
+        console.log(
+          `Odd commitment ${i}: index=${index}, proof length=${proof.length}`
+        );
+
+        // Convert proof to regular array to avoid readonly issues
+        const proofArray = Array.from(proof);
+
+        // Verify proof is valid
+        expect(index).to.equal(i);
+
+        // Perform withdrawal
+        const recipient = users[(i + 1) % users.length].address;
+        const initialBalance = await ethers.provider.getBalance(recipient);
+
+        await stealthPool
+          .connect(users[i])
+          .withdraw(commitments[i], nonces[i], recipient, proofArray);
+
+        const finalBalance = await ethers.provider.getBalance(recipient);
+        expect(finalBalance - initialBalance).to.equal(DEPOSIT_AMOUNT);
+
+        // Verify commitment is spent
+        expect(await stealthPool.isCommitmentSpent(commitments[i])).to.be.true;
+        expect(await stealthPool.isNonceUsed(nonces[i])).to.be.true;
+      }
+
+      console.log("=== Odd commitments test completed successfully ===");
     });
   });
 });
