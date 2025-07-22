@@ -1,3 +1,9 @@
 {
-  "Stealth#StealthPool": "0x96Ba6833759f5f196304CDF9d9E5321398153924"
+  "Recovery#PairRecovery": "0xa1970aa00c97B7d87E4bE8516125A2A239F416B2",
+  "Security#Integrity": "0xf792bF76212C7aAFDf8A9239d5478Cd03386D24C",
+  "Stealth#StealthPool": "0xEcC63BE2EA5Fb72Ca63c758bC9Fd41630230b56e",
+  "Stealth#PayamentForwarder": "0xc9D383bD540Ade3bcfe7868b50aa2D2d21b2C44e",
+  "Stealth#StealthKeyRegistry": "0x4E37B3cB9099B47c1e9c922ea8c1a49e14C65528",
+  "Relay#RelayPaymentRouter": "0x5215d5B4F967d96E5F22350EDfFC2f20773b6F13",
+  "Bridge#BridgeDex": "0x36e3cA55FD43ee0896568690C18D2C154F61AB46"
 }

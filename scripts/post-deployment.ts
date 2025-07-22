@@ -21,9 +21,26 @@ const CHAIN_ID_TO_NAME: { [chainId: string]: string } = {
   // Aggiungi altre chain qui se necessario
 };
 
+function loadExistingDeployments(): DeploymentsFile {
+  const deploymentsPath = join(__dirname, "..", "deployments.json");
+  if (existsSync(deploymentsPath)) {
+    try {
+      return JSON.parse(readFileSync(deploymentsPath, "utf8"));
+    } catch (error) {
+      console.log(
+        "Errore nel leggere deployments.json esistente, parto da zero"
+      );
+    }
+  }
+  return {};
+}
+
 function generateDeploymentsJson(): void {
   const ignitionDir = join(__dirname, "..", "ignition", "deployments");
-  const deployments: DeploymentsFile = {};
+
+  // Carica i deployment esistenti
+  const existingDeployments = loadExistingDeployments();
+  const deployments: DeploymentsFile = { ...existingDeployments };
 
   // Verifica che la directory deployments esista
   if (!existsSync(ignitionDir)) {
@@ -59,7 +76,10 @@ function generateDeploymentsJson(): void {
       continue;
     }
 
-    deployments[chainId] = {};
+    // Inizializza la chain se non esiste
+    if (!deployments[chainId]) {
+      deployments[chainId] = {};
+    }
 
     // Per ogni contratto deployato
     for (const [contractKey, address] of Object.entries(addresses)) {
@@ -72,6 +92,7 @@ function generateDeploymentsJson(): void {
             address: address as string,
             abi: artifact.abi,
           };
+          console.log(`Aggiornato/aggiunto: ${chainId} -> ${contractKey}`);
         } catch (error) {
           console.error(
             `Errore nel leggere l'artifact per ${contractKey}:`,
@@ -87,8 +108,8 @@ function generateDeploymentsJson(): void {
   // Scrivi il file deployments.json
   const outputPath = join(__dirname, "..", "deployments.json");
   writeFileSync(outputPath, JSON.stringify(deployments, null, 2));
-  console.log(`File deployments.json generato in: ${outputPath}`);
-  console.log(`Chain trovate: ${Object.keys(deployments).join(", ")}`);
+  console.log(`File deployments.json aggiornato in: ${outputPath}`);
+  console.log(`Chain totali: ${Object.keys(deployments).join(", ")}`);
 
   // Genera anche il file deployments.ts
   generateDeploymentsTs(deployments);
@@ -110,7 +131,24 @@ function generateDeploymentsTs(deployments: DeploymentsFile): void {
     }
   }
 
-  // Genera il contenuto del file JavaScript
+  // Genera il contenuto del file TypeScript
+  const tsContent = `// File generato automaticamente da post-deployment.ts
+// Non modificare manualmente
+
+export const DEPLOYMENTS = ${JSON.stringify(
+    deploymentsWithNames,
+    null,
+    2
+  )} as const;
+
+export type Deployments = typeof DEPLOYMENTS;
+`;
+
+  const tsOutputPath = join(__dirname, "..", "deployments.ts");
+  writeFileSync(tsOutputPath, tsContent);
+  console.log(`File deployments.ts aggiornato in: ${tsOutputPath}`);
+
+  // Genera anche il file JavaScript
   const jsContent = `// File generato automaticamente da post-deployment.ts
 // Non modificare manualmente
 
@@ -119,9 +157,10 @@ const DEPLOYMENTS = ${JSON.stringify(deploymentsWithNames, null, 2)};
 module.exports = { DEPLOYMENTS };
 `;
 
-  const outputPath = join(__dirname, "..", "deployments.js");
-  writeFileSync(outputPath, jsContent);
-  console.log(`File deployments.js generato in: ${outputPath}`);
+  const jsOutputPath = join(__dirname, "..", "deployments.js");
+  writeFileSync(jsOutputPath, jsContent);
+  console.log(`File deployments.js aggiornato in: ${jsOutputPath}`);
+
   console.log(
     `Chain con nomi: ${Object.keys(deploymentsWithNames).join(", ")}`
   );
