@@ -10,7 +10,7 @@ const Stealth = buildModule("Stealth", (m) => {
   // Deploy StealthPool con il nuovo costruttore semplificato
   // Ora auto-genera la Merkle root e non ha bisogno di merkleManager
   const stealthPool = m.contract("StealthPool", [
-    parseEther("1.0"), // depositAmount: 1 ETH per deposito
+    parseEther("0.001"), // depositAmount: 0.001 ETH per deposito
   ]);
 
   // Return the main contract instances
