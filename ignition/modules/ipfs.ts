@@ -7,9 +7,13 @@ const IPFS = buildModule("IPFS", (m) => {
   // Deploy IPCMFactory per la gestione delle istanze IPCM
   const IPCMFactory = m.contract("IPCMFactory", [m.getAccount(0)]);
 
-  // Return the main contract instance
+  // Deploy IPCM singolo per la gestione dei dati crittografati
+  const IPCM = m.contract("IPCM", [m.getAccount(0)]);
+
+  // Return the main contract instances
   return {
     IPCMFactory,
+    IPCM,
   };
 });
 
