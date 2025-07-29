@@ -4,7 +4,7 @@
 const DEPLOYMENTS = {
   "sepolia": {
     "Stealth#StealthPool": {
-      "address": "0xEcC63BE2EA5Fb72Ca63c758bC9Fd41630230b56e",
+      "address": "0x2E74079a4FaeaF25CC8e73181287c10E66e358dA",
       "abi": [
         {
           "inputs": [
@@ -502,7 +502,7 @@ const DEPLOYMENTS = {
       ]
     },
     "Recovery#PairRecovery": {
-      "address": "0xa1970aa00c97B7d87E4bE8516125A2A239F416B2",
+      "address": "0x050e81d5Aba6EA8e5fB40E4385c692F04D86F889",
       "abi": [
         {
           "anonymous": false,
@@ -797,7 +797,7 @@ const DEPLOYMENTS = {
       ]
     },
     "Security#Integrity": {
-      "address": "0xf792bF76212C7aAFDf8A9239d5478Cd03386D24C",
+      "address": "0xAb8F8fEB2E1dF540208d702f0c8A2AD2E6f8AEcd",
       "abi": [
         {
           "anonymous": false,
@@ -901,7 +901,7 @@ const DEPLOYMENTS = {
       ]
     },
     "Stealth#PayamentForwarder": {
-      "address": "0xc9D383bD540Ade3bcfe7868b50aa2D2d21b2C44e",
+      "address": "0x39372588ec85A31F3675DFaE39d4d4D7a73eE5F6",
       "abi": [
         {
           "inputs": [
@@ -1402,7 +1402,7 @@ const DEPLOYMENTS = {
       ]
     },
     "Stealth#StealthKeyRegistry": {
-      "address": "0x4E37B3cB9099B47c1e9c922ea8c1a49e14C65528",
+      "address": "0xA463FF2CBAbBe8A4c742b2172B301C694fdC6A7F",
       "abi": [
         {
           "inputs": [],
@@ -1608,7 +1608,7 @@ const DEPLOYMENTS = {
       ]
     },
     "Relay#RelayPaymentRouter": {
-      "address": "0x5215d5B4F967d96E5F22350EDfFC2f20773b6F13",
+      "address": "0x52615C4139feD1390F98B9e444Ca3EaaB18c1Fa1",
       "abi": [
         {
           "inputs": [],
@@ -3547,7 +3547,7 @@ const DEPLOYMENTS = {
       ]
     },
     "Database#Chain": {
-      "address": "0xb35E9100B9DDDf1902598404c46f10E20D91e358",
+      "address": "0x9637aB79492ca400E0768e65B38535dbd5f366D3",
       "abi": [
         {
           "inputs": [
@@ -3587,15 +3587,15 @@ const DEPLOYMENTS = {
           "inputs": [
             {
               "indexed": true,
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "soul",
-              "type": "bytes32"
+              "type": "bytes"
             },
             {
               "indexed": true,
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "key",
-              "type": "bytes32"
+              "type": "bytes"
             },
             {
               "indexed": false,
@@ -3629,14 +3629,14 @@ const DEPLOYMENTS = {
         {
           "inputs": [
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "soul",
-              "type": "bytes32"
+              "type": "bytes"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "key",
-              "type": "bytes32"
+              "type": "bytes"
             }
           ],
           "name": "get",
@@ -3653,9 +3653,9 @@ const DEPLOYMENTS = {
         {
           "inputs": [
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "soul",
-              "type": "bytes32"
+              "type": "bytes"
             }
           ],
           "name": "nodeExists",
@@ -3685,14 +3685,14 @@ const DEPLOYMENTS = {
         {
           "inputs": [
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "soul",
-              "type": "bytes32"
+              "type": "bytes"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "key",
-              "type": "bytes32"
+              "type": "bytes"
             },
             {
               "internalType": "bytes",
@@ -3728,7 +3728,7 @@ const DEPLOYMENTS = {
       ]
     },
     "IPFS#IPCMFactory": {
-      "address": "0x8Ca8CD2122473FB2A66F346648883A699881BEd7",
+      "address": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
       "abi": [
         {
           "inputs": [
