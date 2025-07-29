@@ -1,6 +1,9 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "dotenv/config";
+import { decrypt } from '@tka85/dotenvenc';
+decrypt();
+
 
 // Ensure you have a .env file with your PRIVATE_KEY and SEPOLIA_API_KEY
 const PRIVATE_KEY =

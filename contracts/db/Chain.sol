@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * L'applicazione client può passare stringhe leggibili direttamente.
  */
 contract Chain is Ownable {
-
     // Un Nodo nel nostro grafo.
     struct Node {
         // OTTIMIZZAZIONE: Usiamo bytes per le chiavi e bytes per i valori.
@@ -24,9 +23,9 @@ contract Chain is Ownable {
 
     // OTTIMIZZAZIONE: L'evento riflette i nuovi tipi di dati.
     event NodeUpdated(
-        bytes indexed soul, // L'ID del nodo aggiornato
-        bytes indexed key,  // La chiave del campo aggiornato
-        bytes value        // Il nuovo valore
+        bytes value, // Il valore
+        bytes soulReadable, // Soul in chiaro per decodifica
+        bytes keyReadable // Key in chiaro per decodifica
     );
 
     constructor(address initialOwner) Ownable(initialOwner) {}
@@ -38,19 +37,23 @@ contract Chain is Ownable {
      * @param key La chiave del campo (stringa leggibile).
      * @param value Il valore da assegnare al campo (in formato bytes).
      */
-    function put(bytes memory soul, bytes memory key, bytes memory value) public onlyOwner {
+    function put(
+        bytes memory soul,
+        bytes memory key,
+        bytes memory value
+    ) public onlyOwner {
         // Un controllo di base per evitare chiavi vuote.
         require(soul.length > 0, "Soul cannot be empty");
         require(key.length > 0, "Key cannot be empty");
 
         Node storage node = nodes[soul];
         node.fields[key] = value;
-        
+
         if (!node.exists) {
             node.exists = true;
         }
 
-        emit NodeUpdated(soul, key, value);
+        emit NodeUpdated(value, soul, key);
     }
 
     /**
@@ -59,11 +62,14 @@ contract Chain is Ownable {
      * @param key La chiave del campo da leggere (stringa leggibile).
      * @return Il valore del campo in formato bytes.
      */
-    function get(bytes memory soul, bytes memory key) public view returns (bytes memory) {
+    function get(
+        bytes memory soul,
+        bytes memory key
+    ) public view returns (bytes memory) {
         require(nodes[soul].exists, "Node does not exist");
         return nodes[soul].fields[key];
     }
-    
+
     /**
      * @notice Verifica se un nodo esiste nel grafo.
      * @param soul L'ID del nodo da verificare (stringa leggibile).

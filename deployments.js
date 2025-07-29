@@ -3547,7 +3547,7 @@ const DEPLOYMENTS = {
       ]
     },
     "Database#Chain": {
-      "address": "0x9637aB79492ca400E0768e65B38535dbd5f366D3",
+      "address": "0xc9f3C8662914Bc30cd7c47d0ceE7C02e1b7Ad58a",
       "abi": [
         {
           "inputs": [
@@ -3586,21 +3586,21 @@ const DEPLOYMENTS = {
           "anonymous": false,
           "inputs": [
             {
-              "indexed": true,
+              "indexed": false,
               "internalType": "bytes",
-              "name": "soul",
-              "type": "bytes"
-            },
-            {
-              "indexed": true,
-              "internalType": "bytes",
-              "name": "key",
+              "name": "value",
               "type": "bytes"
             },
             {
               "indexed": false,
               "internalType": "bytes",
-              "name": "value",
+              "name": "soulReadable",
+              "type": "bytes"
+            },
+            {
+              "indexed": false,
+              "internalType": "bytes",
+              "name": "keyReadable",
               "type": "bytes"
             }
           ],
