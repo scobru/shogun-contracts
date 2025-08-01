@@ -87,7 +87,15 @@ Handles stealth payments with built-in anti-spam protection.
 - **TypeScript**: >=4.5.0
 - **Ethers.js**: ^6.4.0
 
-## Installation
+## Quick Start
+
+### NPM Installation
+
+```bash
+npm install shogun-contracts
+```
+
+### Development Installation
 
 1. Clone the repository:
 
@@ -228,7 +236,7 @@ paymentForwarder.send{value: amount + toll}(
 - Efficient data structures and mappings
 - Minimal storage operations
 
-## License 
+## License
 
 MIT License - see LICENSE file for details.
 
