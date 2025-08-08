@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-contract RelayPaymentRouter {
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+contract RelayPaymentRouter is ReentrancyGuard {
     // Struttura per rappresentare un relay
     struct Relay {
         string url;
@@ -126,26 +128,39 @@ contract RelayPaymentRouter {
     }
 
     /**
-     * @dev Ottieni tutti i relay attivi
-     * @return address[] Array degli indirizzi dei relay attivi
+     * @dev Ottieni una pagina di relay attivi per evitare DoS con array grandi
+     * @param cursor Indice da cui iniziare la ricerca
+     * @param count Numero massimo di relay da restituire
+     * @return addresses Array degli indirizzi dei relay attivi
+     * @return nextCursor Il cursore per la pagina successiva
      */
-    function getActiveRelays() external view returns (address[] memory) {
-        address[] memory activeRelays = new address[](registeredRelays.length);
+    function getActiveRelays(
+        uint256 cursor,
+        uint256 count
+    ) external view returns (address[] memory addresses, uint256 nextCursor) {
+        address[] memory activeRelays = new address[](count);
         uint256 activeCount = 0;
+        uint256 i = cursor;
 
-        for (uint256 i = 0; i < registeredRelays.length; i++) {
+        while (i < registeredRelays.length && activeCount < count) {
             if (relays[registeredRelays[i]].isActive) {
                 activeRelays[activeCount] = registeredRelays[i];
                 activeCount++;
             }
+            i++;
         }
 
-        // Ridimensiona l'array al numero effettivo di relay attivi
-        assembly {
-            mstore(activeRelays, activeCount)
+        // Se abbiamo scansionato tutto l'array, il prossimo cursore è la lunghezza totale
+        // Altrimenti, è l'indice a cui siamo arrivati
+        nextCursor = i;
+
+        // Ridimensiona l'array di output alla dimensione effettiva
+        address[] memory result = new address[](activeCount);
+        for (uint256 j = 0; j < activeCount; j++) {
+            result[j] = activeRelays[j];
         }
 
-        return activeRelays;
+        return (result, nextCursor);
     }
 
     /**
@@ -176,7 +191,7 @@ contract RelayPaymentRouter {
      */
     function subscribeToRelay(
         address _relayAddress
-    ) external payable notPaused {
+    ) external payable notPaused nonReentrant {
         require(
             msg.value >= MIN_SUBSCRIPTION_AMOUNT,
             "Amount too low - minimum 1 MB required"
@@ -238,7 +253,7 @@ contract RelayPaymentRouter {
      */
     function addMBToSubscription(
         address _relayAddress
-    ) external payable notPaused {
+    ) external payable notPaused nonReentrant {
         require(
             msg.value >= MIN_SUBSCRIPTION_AMOUNT,
             "Amount too low - minimum 1 MB required"
@@ -374,7 +389,9 @@ contract RelayPaymentRouter {
     }
 
     /**
-     * @dev Trova l'indirizzo di un relay basandosi sull'URL
+     * @dev Trova l'indirizzo di un relay basandosi sull'URL.
+     * @notice Questa funzione può consumare molto gas se ci sono molti relay.
+     * Per un'applicazione di produzione, considerare un mapping off-chain o on-chain per la ricerca.
      * @param _url URL del relay da cercare
      * @return address Indirizzo del relay se trovato, altrimenti address(0)
      */
@@ -395,38 +412,51 @@ contract RelayPaymentRouter {
     }
 
     /**
-     * @dev Ottieni tutti i relay attivi con i loro URL
-     * @return address[] Indirizzi dei relay attivi
-     * @return string[] URL dei relay attivi
+     * @dev Ottieni una pagina di relay attivi con i loro URL
+     * @param cursor Indice da cui iniziare la ricerca
+     * @param count Numero massimo di relay da restituire
+     * @return addresses Array degli indirizzi dei relay attivi
+     * @return urls Array degli URL dei relay attivi
+     * @return nextCursor Il cursore per la pagina successiva
      */
-    function getActiveRelaysWithURLs()
+    function getActiveRelaysWithURLs(
+        uint256 cursor,
+        uint256 count
+    )
         external
         view
-        returns (address[] memory, string[] memory)
+        returns (
+            address[] memory addresses,
+            string[] memory urls,
+            uint256 nextCursor
+        )
     {
-        address[] memory activeAddresses = new address[](
-            registeredRelays.length
-        );
-        string[] memory activeURLs = new string[](registeredRelays.length);
+        address[] memory activeAddresses = new address[](count);
+        string[] memory activeURLs = new string[](count);
         uint256 activeCount = 0;
+        uint256 i = cursor;
 
-        for (uint256 i = 0; i < registeredRelays.length; i++) {
+        while (i < registeredRelays.length && activeCount < count) {
             address relayAddress = registeredRelays[i];
-            Relay memory relay = relays[relayAddress];
-            if (relay.isActive) {
+            if (relays[relayAddress].isActive) {
                 activeAddresses[activeCount] = relayAddress;
-                activeURLs[activeCount] = relay.url;
+                activeURLs[activeCount] = relays[relayAddress].url;
                 activeCount++;
             }
+            i++;
         }
 
-        // Ridimensiona gli array al numero effettivo di relay attivi
-        assembly {
-            mstore(activeAddresses, activeCount)
-            mstore(activeURLs, activeCount)
+        nextCursor = i;
+
+        // Ridimensiona gli array di output alla dimensione effettiva
+        addresses = new address[](activeCount);
+        urls = new string[](activeCount);
+        for (uint256 j = 0; j < activeCount; j++) {
+            addresses[j] = activeAddresses[j];
+            urls[j] = activeURLs[j];
         }
 
-        return (activeAddresses, activeURLs);
+        return (addresses, urls, nextCursor);
     }
 
     /**
@@ -467,7 +497,7 @@ contract RelayPaymentRouter {
     /**
      * @dev Ritira le fee accumulate (solo owner)
      */
-    function withdrawFees() external onlyOwner {
+    function withdrawFees() external onlyOwner nonReentrant {
         uint256 balance = address(this).balance;
         require(balance > 0, "No fees to withdraw");
 
