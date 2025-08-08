@@ -3,29 +3,29 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title StealthPool
- * @dev Sistema di mixing privato per transazioni stealth
+ * @dev Private mixing system for stealth transactions
  *
- * Questo contratto implementa un pool stealth che:
- * 1. Utilizza commitment criptografici per la privacy
- * 2. Utilizza nonce casuali per prevenire replay attacks
- * 3. Utilizza Merkle tree per l'efficienza
- * 4. Auto-genera la Merkle root dai depositi
- * 5. Non richiede relayer - l'utente paga direttamente il gas
+ * This contract implements a stealth pool that:
+ * 1. Uses cryptographic commitments for privacy
+ * 2. Uses random nonces to prevent replay attacks
+ * 3. Uses Merkle trees for efficiency
+ * 4. Merkle root is managed off-chain and updated by the owner
+ * 5. Does not require a relayer - the user pays for gas directly
  */
 contract StealthPool is ReentrancyGuard, Ownable {
     // =========================================== Events ============================================
 
-    /// @dev Event emesso quando viene aggiornata la Merkle root
+    /// @dev Event emitted when the Merkle root is updated
     event MerkleRootUpdated(
-        bytes32 indexed oldRoot,
         bytes32 indexed newRoot,
         uint256 timestamp
     );
 
-    /// @dev Event emesso quando viene effettuato un prelievo
+    /// @dev Event emitted when a withdrawal is made
     event Withdrawal(
         bytes32 indexed commitment,
         address indexed recipient,
@@ -33,41 +33,38 @@ contract StealthPool is ReentrancyGuard, Ownable {
         uint256 timestamp
     );
 
-    /// @dev Event emesso quando viene registrato un nuovo deposito
+    /// @dev Event emitted when a new deposit is registered
     event DepositRegistered(
         bytes32 indexed commitment,
-        uint256 amount,
+        uint256 index,
         uint256 timestamp
     );
 
     // ======================================= State variables =======================================
 
-    /// @dev La Merkle root corrente che rappresenta tutti i depositi
+    /// @dev The current Merkle root representing all deposits
     bytes32 public merkleRoot;
 
-    /// @dev L'importo fisso per ogni deposito
+    /// @dev The fixed amount for each deposit
     uint256 public immutable depositAmount;
 
-    /// @dev Mapping per tracciare i commitment già spesi
+    /// @dev Mapping to track already spent commitments
     mapping(bytes32 => bool) public spentCommitments;
 
-    /// @dev Mapping per tracciare i nonce utilizzati (previene replay attacks)
+    /// @dev Mapping to track used nonces (prevents replay attacks)
     mapping(bytes32 => bool) public usedNonces;
 
-    /// @dev Contatore dei depositi totali
+    /// @dev Counter for total deposits
     uint256 public totalDeposits;
 
-    /// @dev Array di tutti i commitment registrati
-    bytes32[] public allCommitments;
-
-    /// @dev Mapping per verificare se un commitment è registrato
-    mapping(bytes32 => bool) public registeredCommitments;
+    /// @dev Mapping from commitment to its index in the Merkle tree
+    mapping(bytes32 => uint256) public commitmentIndexes;
 
     // ======================================= Constructor =======================================
 
     /**
-     * @dev Costruttore del contratto
-     * @param _depositAmount L'importo fisso per ogni deposito
+     * @dev Contract constructor
+     * @param _depositAmount The fixed amount for each deposit
      */
     constructor(uint256 _depositAmount) Ownable(msg.sender) {
         require(
@@ -81,11 +78,11 @@ contract StealthPool is ReentrancyGuard, Ownable {
     // ======================================= Core Functions =======================================
 
     /**
-     * @notice Funzione per prelevare fondi utilizzando un commitment e un nonce
-     * @param _commitment Il commitment del deposito
-     * @param _nonce Il nonce casuale per prevenire replay attacks
-     * @param _recipient L'indirizzo destinatario dei fondi
-     * @param _merkleProof La prova Merkle per dimostrare l'inclusione del commitment
+     * @notice Function to withdraw funds using a commitment and a nonce
+     * @param _commitment The deposit commitment
+     * @param _nonce The random nonce to prevent replay attacks
+     * @param _recipient The recipient address for the funds
+     * @param _merkleProof The Merkle proof to demonstrate the inclusion of the commitment
      */
     function withdraw(
         bytes32 _commitment,
@@ -103,34 +100,34 @@ contract StealthPool is ReentrancyGuard, Ownable {
         );
         require(_nonce != bytes32(0), "StealthPool: nonce cannot be zero");
 
-        // 1. Verifica che il commitment sia registrato
+        // 1. Verify that the commitment is registered
         require(
-            registeredCommitments[_commitment],
+            isCommitmentRegistered(_commitment),
             "StealthPool: commitment not registered"
         );
 
-        // 2. Verifica che il commitment non sia già stato speso
+        // 2. Verify that the commitment has not already been spent
         require(
             !spentCommitments[_commitment],
             "StealthPool: commitment already spent"
         );
 
-        // 3. Verifica che il nonce non sia già stato utilizzato
+        // 3. Verify that the nonce has not already been used
         require(!usedNonces[_nonce], "StealthPool: nonce already used");
 
-        // 4. Verifica la Merkle proof usando la nostra implementazione personalizzata
-        bool isValidProof = verifyMerkleProof(_commitment, _merkleProof);
+        // 4. Verify the Merkle proof using OpenZeppelin's MerkleProof library
+        bool isValidProof = MerkleProof.verify(_merkleProof, merkleRoot, _commitment);
         require(isValidProof, "StealthPool: invalid Merkle proof");
 
-        // 5. Marca il commitment come speso e il nonce come utilizzato
+        // 5. Mark the commitment as spent and the nonce as used
         spentCommitments[_commitment] = true;
         usedNonces[_nonce] = true;
 
-        // 6. Invia i fondi al destinatario (importo completo)
+        // 6. Send the funds to the recipient (full amount)
         (bool success, ) = _recipient.call{value: depositAmount}("");
         require(success, "StealthPool: transfer failed");
 
-        // 7. Emetti l'evento
+        // 7. Emit the event
         emit Withdrawal(
             _commitment,
             _recipient,
@@ -140,8 +137,8 @@ contract StealthPool is ReentrancyGuard, Ownable {
     }
 
     /**
-     * @notice Registra un nuovo deposito e aggiorna la Merkle root
-     * @param _commitment Il commitment del deposito
+     * @notice Register a new deposit
+     * @param _commitment The deposit commitment
      */
     function registerDeposit(bytes32 _commitment) external {
         require(
@@ -149,29 +146,33 @@ contract StealthPool is ReentrancyGuard, Ownable {
             "StealthPool: commitment cannot be zero"
         );
         require(
-            !registeredCommitments[_commitment],
+            !isCommitmentRegistered(_commitment),
             "StealthPool: commitment already registered"
         );
 
-        // Registra il commitment
-        allCommitments.push(_commitment);
-        registeredCommitments[_commitment] = true;
+        // Register the commitment
+        uint256 index = totalDeposits;
+        commitmentIndexes[_commitment] = index + 1; // Use 1-based indexing to distinguish from non-existent entries
         totalDeposits++;
 
-        // Calcola e aggiorna la Merkle root
-        bytes32 oldRoot = merkleRoot;
-        merkleRoot = calculateMerkleRoot(allCommitments);
-
-        emit DepositRegistered(_commitment, depositAmount, block.timestamp);
-        emit MerkleRootUpdated(oldRoot, merkleRoot, block.timestamp);
+        emit DepositRegistered(_commitment, index, block.timestamp);
     }
 
     // ======================================= Management Functions =======================================
 
     /**
-     * @notice Permette al proprietario di prelevare ETH dal contratto in caso di emergenza
-     * @param _amount L'importo da prelevare
-     * @param _recipient Il destinatario dei fondi
+     * @notice Allows the owner to update the Merkle root
+     * @param _newMerkleRoot The new Merkle root
+     */
+    function updateMerkleRoot(bytes32 _newMerkleRoot) external onlyOwner {
+        merkleRoot = _newMerkleRoot;
+        emit MerkleRootUpdated(_newMerkleRoot, block.timestamp);
+    }
+
+    /**
+     * @notice Allows the owner to withdraw ETH from the contract in case of emergency
+     * @param _amount The amount to withdraw
+     * @param _recipient The recipient of the funds
      */
     function emergencyWithdraw(
         uint256 _amount,
@@ -193,9 +194,9 @@ contract StealthPool is ReentrancyGuard, Ownable {
     // ======================================= View Functions =======================================
 
     /**
-     * @notice Verifica se un commitment è stato speso
-     * @param _commitment Il commitment da verificare
-     * @return True se il commitment è stato speso
+     * @notice Checks if a commitment has been spent
+     * @param _commitment The commitment to check
+     * @return True if the commitment has been spent
      */
     function isCommitmentSpent(
         bytes32 _commitment
@@ -204,56 +205,48 @@ contract StealthPool is ReentrancyGuard, Ownable {
     }
 
     /**
-     * @notice Verifica se un nonce è stato utilizzato
-     * @param _nonce Il nonce da verificare
-     * @return True se il nonce è stato utilizzato
+     * @notice Checks if a nonce has been used
+     * @param _nonce The nonce to check
+     * @return True if the nonce has been used
      */
     function isNonceUsed(bytes32 _nonce) external view returns (bool) {
         return usedNonces[_nonce];
     }
 
     /**
-     * @notice Verifica se un commitment è registrato
-     * @param _commitment Il commitment da verificare
-     * @return True se il commitment è registrato
+     * @notice Checks if a commitment is registered
+     * @param _commitment The commitment to check
+     * @return True if the commitment is registered
      */
     function isCommitmentRegistered(
         bytes32 _commitment
-    ) external view returns (bool) {
-        return registeredCommitments[_commitment];
+    ) public view returns (bool) {
+        return commitmentIndexes[_commitment] > 0;
     }
 
     /**
-     * @notice Ottiene il bilancio del contratto
-     * @return Il bilancio in ETH
+     * @notice Gets the contract balance
+     * @return The balance in ETH
      */
     function getBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
     /**
-     * @notice Ottiene tutti i commitment registrati
-     * @return Array di tutti i commitment
+     * @notice Gets the total number of deposits
+     * @return The number of deposits
      */
-    function getAllCommitments() external view returns (bytes32[] memory) {
-        return allCommitments;
-    }
-
-    /**
-     * @notice Ottiene il numero totale di commitment
-     * @return Il numero di commitment
-     */
-    function getCommitmentCount() external view returns (uint256) {
-        return allCommitments.length;
+    function getDepositCount() external view returns (uint256) {
+        return totalDeposits;
     }
 
     // ======================================= Helper Functions =======================================
 
     /**
-     * @dev Calcola il commitment da una chiave pubblica e un nonce
-     * @param _publicKey La chiave pubblica
-     * @param _nonce Il nonce casuale
-     * @return Il commitment calcolato
+     * @dev Calculates the commitment from a public key and a nonce
+     * @param _publicKey The public key
+     * @param _nonce The random nonce
+     * @return The calculated commitment
      */
     function calculateCommitment(
         bytes calldata _publicKey,
@@ -262,230 +255,12 @@ contract StealthPool is ReentrancyGuard, Ownable {
         return keccak256(abi.encodePacked(_publicKey, _nonce));
     }
 
-    /**
-     * @dev Calcola la Merkle root da un array di commitment
-     * @param _commitments Array di commitment
-     * @return La Merkle root calcolata
-     */
-    function calculateMerkleRoot(
-        bytes32[] memory _commitments
-    ) internal pure returns (bytes32) {
-        if (_commitments.length == 0) {
-            return bytes32(0);
-        }
-
-        if (_commitments.length == 1) {
-            return _commitments[0];
-        }
-
-        bytes32[] memory currentLevel = _commitments;
-
-        while (currentLevel.length > 1) {
-            bytes32[] memory nextLevel = new bytes32[](
-                (currentLevel.length + 1) / 2
-            );
-
-            for (uint256 i = 0; i < currentLevel.length; i += 2) {
-                if (i + 1 < currentLevel.length) {
-                    // Coppia di foglie: calcola hash delle due foglie
-                    nextLevel[i / 2] = keccak256(
-                        abi.encodePacked(currentLevel[i], currentLevel[i + 1])
-                    );
-                } else {
-                    // Foglia singola: usa la foglia stessa
-                    nextLevel[i / 2] = currentLevel[i];
-                }
-            }
-
-            currentLevel = nextLevel;
-        }
-
-        return currentLevel[0];
-    }
-
-    /**
-     * @dev Genera una Merkle proof per un commitment specifico
-     * @param _commitment Il commitment per cui generare la proof
-     * @return proof La Merkle proof generata
-     * @return index L'indice del commitment nell'array
-     */
-    function generateMerkleProof(
-        bytes32 _commitment
-    ) external view returns (bytes32[] memory proof, uint256 index) {
-        require(
-            registeredCommitments[_commitment],
-            "StealthPool: commitment not registered"
-        );
-
-        // Trova l'indice del commitment
-        index = type(uint256).max;
-        for (uint256 i = 0; i < allCommitments.length; i++) {
-            if (allCommitments[i] == _commitment) {
-                index = i;
-                break;
-            }
-        }
-
-        require(
-            index != type(uint256).max,
-            "StealthPool: commitment not found"
-        );
-
-        // Genera la proof
-        proof = _generateProofInternal(allCommitments, index);
-    }
-
-    /**
-     * @dev Genera una Merkle proof per un indice specifico
-     * @param _commitments Array di commitment
-     * @param _index Indice del commitment per cui generare la proof
-     * @return proof La Merkle proof generata
-     */
-    function _generateProofInternal(
-        bytes32[] memory _commitments,
-        uint256 _index
-    ) internal pure returns (bytes32[] memory) {
-        require(_index < _commitments.length, "StealthPool: invalid index");
-
-        // Calcola la lunghezza della proof (altezza dell'albero - 1)
-        uint256 proofLength = 0;
-        uint256 tempLength = _commitments.length;
-        while (tempLength > 1) {
-            proofLength++;
-            tempLength = (tempLength + 1) / 2;
-        }
-
-        bytes32[] memory proof = new bytes32[](proofLength);
-        uint256 proofIndex = 0;
-        uint256 currentIndex = _index;
-        bytes32[] memory currentLevel = _commitments;
-
-        while (currentLevel.length > 1) {
-            if (currentIndex % 2 == 0) {
-                // Indice pari: il sibling è a destra
-                if (currentIndex + 1 < currentLevel.length) {
-                    proof[proofIndex] = currentLevel[currentIndex + 1];
-                    proofIndex++;
-                }
-            } else {
-                // Indice dispari: il sibling è a sinistra
-                proof[proofIndex] = currentLevel[currentIndex - 1];
-                proofIndex++;
-            }
-
-            currentIndex = currentIndex / 2;
-
-            // Calcola il livello successivo
-            bytes32[] memory nextLevel = new bytes32[](
-                (currentLevel.length + 1) / 2
-            );
-            for (uint256 i = 0; i < currentLevel.length; i += 2) {
-                if (i + 1 < currentLevel.length) {
-                    nextLevel[i / 2] = keccak256(
-                        abi.encodePacked(currentLevel[i], currentLevel[i + 1])
-                    );
-                } else {
-                    nextLevel[i / 2] = currentLevel[i];
-                }
-            }
-            currentLevel = nextLevel;
-        }
-
-        // Ridimensiona l'array proof per rimuovere gli elementi vuoti
-        bytes32[] memory finalProof = new bytes32[](proofIndex);
-        for (uint256 i = 0; i < proofIndex; i++) {
-            finalProof[i] = proof[i];
-        }
-
-        return finalProof;
-    }
-
-    /**
-     * @dev Verifica una Merkle proof per un commitment specifico
-     * @param _commitment Il commitment da verificare
-     * @param _proof La Merkle proof da verificare
-     * @return True se la proof è valida
-     */
-    function verifyMerkleProof(
-        bytes32 _commitment,
-        bytes32[] calldata _proof
-    ) internal view returns (bool) {
-        bytes32 computedHash = _commitment;
-        uint256 proofIndex = 0;
-
-        // Trova l'indice del commitment nell'array
-        uint256 commitmentIndex = type(uint256).max;
-        for (uint256 i = 0; i < allCommitments.length; i++) {
-            if (allCommitments[i] == _commitment) {
-                commitmentIndex = i;
-                break;
-            }
-        }
-
-        if (commitmentIndex == type(uint256).max) {
-            return false;
-        }
-
-        // Calcola il percorso nell'albero
-        uint256 currentIndex = commitmentIndex;
-        bytes32[] memory currentLevel = allCommitments;
-
-        while (currentLevel.length > 1) {
-            if (currentIndex % 2 == 0) {
-                // Indice pari: il sibling è a destra
-                if (currentIndex + 1 < currentLevel.length) {
-                    if (proofIndex >= _proof.length) {
-                        return false;
-                    }
-                    computedHash = keccak256(
-                        abi.encodePacked(computedHash, _proof[proofIndex])
-                    );
-                    proofIndex++;
-                }
-                // Se non c'è sibling a destra, non fare nulla (foglia singola)
-            } else {
-                // Indice dispari: il sibling è a sinistra
-                if (proofIndex >= _proof.length) {
-                    return false;
-                }
-                computedHash = keccak256(
-                    abi.encodePacked(_proof[proofIndex], computedHash)
-                );
-                proofIndex++;
-            }
-
-            currentIndex = currentIndex / 2;
-
-            // Calcola il livello successivo
-            bytes32[] memory nextLevel = new bytes32[](
-                (currentLevel.length + 1) / 2
-            );
-            for (uint256 i = 0; i < currentLevel.length; i += 2) {
-                if (i + 1 < currentLevel.length) {
-                    nextLevel[i / 2] = keccak256(
-                        abi.encodePacked(currentLevel[i], currentLevel[i + 1])
-                    );
-                } else {
-                    nextLevel[i / 2] = currentLevel[i];
-                }
-            }
-            currentLevel = nextLevel;
-        }
-
-        // Verifica che tutte le proof siano state utilizzate
-        if (proofIndex != _proof.length) {
-            return false;
-        }
-
-        return computedHash == merkleRoot;
-    }
-
     // ======================================= Receive Function =======================================
 
     /**
-     * @dev Permette al contratto di ricevere ETH
+     * @dev Allows the contract to receive ETH
      */
     receive() external payable {
-        // Il contratto può ricevere ETH per i depositi
+        // The contract can receive ETH for deposits
     }
 }

@@ -19,7 +19,8 @@
     "dotenv": "^16.5.0",
     "gun": "^0.2020.1240",
     "hardhat": "^2.22.19",
-    "keccak256": "^1.0.6"
+    "keccak256": "^1.0.6",
+    "merkletreejs": "^0.5.2"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
