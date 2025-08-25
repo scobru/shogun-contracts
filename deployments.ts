@@ -4,13 +4,13 @@
 export const DEPLOYMENTS = {
   "sepolia": {
     "Stealth#StealthPool": {
-      "address": "0x2E74079a4FaeaF25CC8e73181287c10E66e358dA",
+      "address": "0x23475B5BB8EDa9a8F88727e460E4C372E0E05767",
       "abi": [
         {
           "inputs": [
             {
               "internalType": "uint256",
-              "name": "_depositAmount",
+              "name": "_minDepositAmount",
               "type": "uint256"
             }
           ],
@@ -188,19 +188,6 @@ export const DEPLOYMENTS = {
           "type": "function"
         },
         {
-          "inputs": [],
-          "name": "depositAmount",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
           "inputs": [
             {
               "internalType": "uint256",
@@ -289,7 +276,45 @@ export const DEPLOYMENTS = {
               "type": "bytes32"
             }
           ],
-          "name": "isCommitmentRegistered",
+          "name": "getRemainingAmount",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "_commitment",
+              "type": "bytes32"
+            }
+          ],
+          "name": "getTotalDepositAmount",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "_commitment",
+              "type": "bytes32"
+            }
+          ],
+          "name": "hasRemainingFunds",
           "outputs": [
             {
               "internalType": "bool",
@@ -308,7 +333,7 @@ export const DEPLOYMENTS = {
               "type": "bytes32"
             }
           ],
-          "name": "isCommitmentSpent",
+          "name": "isCommitmentRegistered",
           "outputs": [
             {
               "internalType": "bool",
@@ -353,6 +378,19 @@ export const DEPLOYMENTS = {
         },
         {
           "inputs": [],
+          "name": "minDepositAmount",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "owner",
           "outputs": [
             {
@@ -370,6 +408,11 @@ export const DEPLOYMENTS = {
               "internalType": "bytes32",
               "name": "_commitment",
               "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "_amount",
+              "type": "uint256"
             }
           ],
           "name": "registerDeposit",
@@ -397,6 +440,25 @@ export const DEPLOYMENTS = {
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "name": "remainingAmounts",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "renounceOwnership",
           "outputs": [],
@@ -411,12 +473,12 @@ export const DEPLOYMENTS = {
               "type": "bytes32"
             }
           ],
-          "name": "spentCommitments",
+          "name": "totalDepositAmounts",
           "outputs": [
             {
-              "internalType": "bool",
+              "internalType": "uint256",
               "name": "",
-              "type": "bool"
+              "type": "uint256"
             }
           ],
           "stateMutability": "view",
@@ -485,6 +547,11 @@ export const DEPLOYMENTS = {
               "type": "address"
             },
             {
+              "internalType": "uint256",
+              "name": "_amount",
+              "type": "uint256"
+            },
+            {
               "internalType": "bytes32[]",
               "name": "_merkleProof",
               "type": "bytes32[]"
@@ -502,7 +569,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Recovery#PairRecovery": {
-      "address": "0x050e81d5Aba6EA8e5fB40E4385c692F04D86F889",
+      "address": "0xd005b215275Eed5B48cCCD878E6FaecfD4F49218",
       "abi": [
         {
           "anonymous": false,
@@ -797,7 +864,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Security#Integrity": {
-      "address": "0xAb8F8fEB2E1dF540208d702f0c8A2AD2E6f8AEcd",
+      "address": "0x8D1d8C872564091f1E1666B110D35CE1b50f3EAE",
       "abi": [
         {
           "anonymous": false,
@@ -901,7 +968,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Stealth#PayamentForwarder": {
-      "address": "0x39372588ec85A31F3675DFaE39d4d4D7a73eE5F6",
+      "address": "0x4CF1F3B14B9652d47226d74dEA94eeb116840B94",
       "abi": [
         {
           "inputs": [
@@ -1402,7 +1469,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Stealth#StealthKeyRegistry": {
-      "address": "0xA463FF2CBAbBe8A4c742b2172B301C694fdC6A7F",
+      "address": "0xA457657E730B212E5AbA997A3562A94552C40cA1",
       "abi": [
         {
           "inputs": [],
@@ -1608,7 +1675,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Relay#RelayPaymentRouter": {
-      "address": "0x52615C4139feD1390F98B9e444Ca3EaaB18c1Fa1",
+      "address": "0x4B1F3B4D398068F48789285Ce7215B54eCf27d6a",
       "abi": [
         {
           "inputs": [],
@@ -2361,7 +2428,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Bridge#BridgeDex": {
-      "address": "0x36e3cA55FD43ee0896568690C18D2C154F61AB46",
+      "address": "0x39193a70f97e65Fcae575F31c8abd8A1A139E293",
       "abi": [
         {
           "inputs": [],
@@ -3547,7 +3614,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Database#Chain": {
-      "address": "0xc9f3C8662914Bc30cd7c47d0ceE7C02e1b7Ad58a",
+      "address": "0xA888cA3c1495aBdbEc48AF7E20714ff49B4B39D9",
       "abi": [
         {
           "inputs": [
@@ -3728,7 +3795,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "IPFS#IPCMFactory": {
-      "address": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
+      "address": "0xc9228E17C3f19956235E6C01f2Aaffc73B09E5F0",
       "abi": [
         {
           "inputs": [
@@ -4001,7 +4068,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "IPFS#IPCM": {
-      "address": "0xC4463A46Ec3230Fe15937c22E284da9fA4EC36b0",
+      "address": "0x13CeaE49Dd0aF3cf74d208B11a366f4fc2e3Be33",
       "abi": [
         {
           "inputs": [

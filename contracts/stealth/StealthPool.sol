@@ -45,11 +45,11 @@ contract StealthPool is ReentrancyGuard, Ownable {
     /// @dev La Merkle root corrente che rappresenta tutti i depositi
     bytes32 public merkleRoot;
 
-    /// @dev L'importo fisso per ogni deposito
-    uint256 public immutable depositAmount;
+    /// @dev L'importo minimo per ogni deposito
+    uint256 public immutable minDepositAmount;
 
-    /// @dev Mapping per tracciare i commitment già spesi
-    mapping(bytes32 => bool) public spentCommitments;
+    /// @dev Mapping per tracciare l'importo rimanente di ogni commitment
+    mapping(bytes32 => uint256) public remainingAmounts;
 
     /// @dev Mapping per tracciare i nonce utilizzati (previene replay attacks)
     mapping(bytes32 => bool) public usedNonces;
@@ -63,19 +63,22 @@ contract StealthPool is ReentrancyGuard, Ownable {
     /// @dev Mapping per verificare se un commitment è registrato
     mapping(bytes32 => bool) public registeredCommitments;
 
+    /// @dev Mapping per tracciare l'importo totale di ogni deposito (per riferimento)
+    mapping(bytes32 => uint256) public totalDepositAmounts;
+
     // ======================================= Constructor =======================================
 
     /**
      * @dev Costruttore del contratto
-     * @param _depositAmount L'importo fisso per ogni deposito
+     * @param _minDepositAmount L'importo minimo per ogni deposito
      */
-    constructor(uint256 _depositAmount) Ownable(msg.sender) {
+    constructor(uint256 _minDepositAmount) Ownable(msg.sender) {
         require(
-            _depositAmount > 0,
-            "StealthPool: deposit amount must be positive"
+            _minDepositAmount > 0,
+            "StealthPool: minimum deposit amount must be positive"
         );
 
-        depositAmount = _depositAmount;
+        minDepositAmount = _minDepositAmount;
     }
 
     // ======================================= Core Functions =======================================
@@ -85,12 +88,14 @@ contract StealthPool is ReentrancyGuard, Ownable {
      * @param _commitment Il commitment del deposito
      * @param _nonce Il nonce casuale per prevenire replay attacks
      * @param _recipient L'indirizzo destinatario dei fondi
+     * @param _amount L'importo da prelevare (0 = preleva tutto)
      * @param _merkleProof La prova Merkle per dimostrare l'inclusione del commitment
      */
     function withdraw(
         bytes32 _commitment,
         bytes32 _nonce,
         address payable _recipient,
+        uint256 _amount,
         bytes32[] calldata _merkleProof
     ) external nonReentrant {
         require(
@@ -109,11 +114,9 @@ contract StealthPool is ReentrancyGuard, Ownable {
             "StealthPool: commitment not registered"
         );
 
-        // 2. Verifica che il commitment non sia già stato speso
-        require(
-            !spentCommitments[_commitment],
-            "StealthPool: commitment already spent"
-        );
+        // 2. Verifica che ci sia un importo rimanente
+        uint256 remainingAmount = remainingAmounts[_commitment];
+        require(remainingAmount > 0, "StealthPool: no funds remaining");
 
         // 3. Verifica che il nonce non sia già stato utilizzato
         require(!usedNonces[_nonce], "StealthPool: nonce already used");
@@ -122,19 +125,32 @@ contract StealthPool is ReentrancyGuard, Ownable {
         bool isValidProof = verifyMerkleProof(_commitment, _merkleProof);
         require(isValidProof, "StealthPool: invalid Merkle proof");
 
-        // 5. Marca il commitment come speso e il nonce come utilizzato
-        spentCommitments[_commitment] = true;
+        // 5. Calcola l'importo da prelevare
+        uint256 withdrawalAmount;
+        if (_amount == 0) {
+            // Se _amount è 0, preleva tutto
+            withdrawalAmount = remainingAmount;
+        } else {
+            // Altrimenti preleva l'importo specificato
+            require(_amount <= remainingAmount, "StealthPool: insufficient funds");
+            withdrawalAmount = _amount;
+        }
+
+        // 6. Aggiorna l'importo rimanente
+        remainingAmounts[_commitment] = remainingAmount - withdrawalAmount;
+
+        // 7. Marca il nonce come utilizzato
         usedNonces[_nonce] = true;
 
-        // 6. Invia i fondi al destinatario (importo completo)
-        (bool success, ) = _recipient.call{value: depositAmount}("");
+        // 8. Invia i fondi al destinatario
+        (bool success, ) = _recipient.call{value: withdrawalAmount}("");
         require(success, "StealthPool: transfer failed");
 
-        // 7. Emetti l'evento
+        // 9. Emetti l'evento
         emit Withdrawal(
             _commitment,
             _recipient,
-            depositAmount,
+            withdrawalAmount,
             block.timestamp
         );
     }
@@ -142,8 +158,9 @@ contract StealthPool is ReentrancyGuard, Ownable {
     /**
      * @notice Registra un nuovo deposito e aggiorna la Merkle root
      * @param _commitment Il commitment del deposito
+     * @param _amount L'importo del deposito
      */
-    function registerDeposit(bytes32 _commitment) external {
+    function registerDeposit(bytes32 _commitment, uint256 _amount) external {
         require(
             _commitment != bytes32(0),
             "StealthPool: commitment cannot be zero"
@@ -152,17 +169,23 @@ contract StealthPool is ReentrancyGuard, Ownable {
             !registeredCommitments[_commitment],
             "StealthPool: commitment already registered"
         );
+        require(
+            _amount >= minDepositAmount,
+            "StealthPool: deposit amount below minimum"
+        );
 
-        // Registra il commitment
+        // Registra il commitment e l'importo
         allCommitments.push(_commitment);
         registeredCommitments[_commitment] = true;
+        totalDepositAmounts[_commitment] = _amount;
+        remainingAmounts[_commitment] = _amount; // L'importo rimanente è uguale all'importo totale inizialmente
         totalDeposits++;
 
         // Calcola e aggiorna la Merkle root
         bytes32 oldRoot = merkleRoot;
         merkleRoot = calculateMerkleRoot(allCommitments);
 
-        emit DepositRegistered(_commitment, depositAmount, block.timestamp);
+        emit DepositRegistered(_commitment, _amount, block.timestamp);
         emit MerkleRootUpdated(oldRoot, merkleRoot, block.timestamp);
     }
 
@@ -193,14 +216,14 @@ contract StealthPool is ReentrancyGuard, Ownable {
     // ======================================= View Functions =======================================
 
     /**
-     * @notice Verifica se un commitment è stato speso
+     * @notice Verifica se un commitment ha ancora fondi disponibili
      * @param _commitment Il commitment da verificare
-     * @return True se il commitment è stato speso
+     * @return True se il commitment ha ancora fondi disponibili
      */
-    function isCommitmentSpent(
+    function hasRemainingFunds(
         bytes32 _commitment
     ) external view returns (bool) {
-        return spentCommitments[_commitment];
+        return remainingAmounts[_commitment] > 0;
     }
 
     /**
@@ -245,6 +268,32 @@ contract StealthPool is ReentrancyGuard, Ownable {
      */
     function getCommitmentCount() external view returns (uint256) {
         return allCommitments.length;
+    }
+
+    /**
+     * @notice Ottiene l'importo totale di un deposito specifico
+     * @param _commitment Il commitment del deposito
+     * @return L'importo totale del deposito
+     */
+    function getTotalDepositAmount(bytes32 _commitment) external view returns (uint256) {
+        require(
+            registeredCommitments[_commitment],
+            "StealthPool: commitment not registered"
+        );
+        return totalDepositAmounts[_commitment];
+    }
+
+    /**
+     * @notice Ottiene l'importo rimanente di un deposito specifico
+     * @param _commitment Il commitment del deposito
+     * @return L'importo rimanente del deposito
+     */
+    function getRemainingAmount(bytes32 _commitment) external view returns (uint256) {
+        require(
+            registeredCommitments[_commitment],
+            "StealthPool: commitment not registered"
+        );
+        return remainingAmounts[_commitment];
     }
 
     // ======================================= Helper Functions =======================================
