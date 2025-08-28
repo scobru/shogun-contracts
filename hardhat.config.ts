@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "dotenv/config";
+
 import { decrypt } from '@tka85/dotenvenc';
 decrypt();
 
