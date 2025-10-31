@@ -4192,6 +4192,731 @@
           "type": "function"
         }
       ]
+    },
+    "HashLayer#BalanceKeeper": {
+      "address": "0x1D7E662FA5C7c4166E2740B590aC014458582302",
+      "abi": [
+        {
+          "inputs": [],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "miner",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "BalanceAdded",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "miner",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "BalanceWithdrawn",
+          "type": "event"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "miner",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "addBalance",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "balances",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "miner",
+              "type": "address"
+            }
+          ],
+          "name": "getBalance",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "hashLayer",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "withdraw",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ]
+    },
+    "HashLayer#ChainState": {
+      "address": "0x725745e36c553F9d3Ac934C12CDdad920141eD0F",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "initialDifficulty",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "genesisHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "initialReward",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint64",
+              "name": "height",
+              "type": "uint64"
+            },
+            {
+              "indexed": true,
+              "internalType": "bytes32",
+              "name": "blockHash",
+              "type": "bytes32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "difficulty",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "reward",
+              "type": "uint256"
+            }
+          ],
+          "name": "ChainStateUpdated",
+          "type": "event"
+        },
+        {
+          "inputs": [],
+          "name": "chainState",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "difficulty",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint64",
+              "name": "lastAdjustmentTime",
+              "type": "uint64"
+            },
+            {
+              "components": [
+                {
+                  "components": [
+                    {
+                      "internalType": "uint64",
+                      "name": "height",
+                      "type": "uint64"
+                    },
+                    {
+                      "internalType": "bytes32",
+                      "name": "previousHash",
+                      "type": "bytes32"
+                    },
+                    {
+                      "internalType": "uint64",
+                      "name": "nonce",
+                      "type": "uint64"
+                    },
+                    {
+                      "internalType": "bytes",
+                      "name": "data",
+                      "type": "bytes"
+                    }
+                  ],
+                  "internalType": "struct ChainState.BlockHeader",
+                  "name": "header",
+                  "type": "tuple"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "blockHash",
+                  "type": "bytes32"
+                }
+              ],
+              "internalType": "struct ChainState.Block",
+              "name": "lastBlock",
+              "type": "tuple"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reward",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "getChainState",
+          "outputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "difficulty",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "lastAdjustmentTime",
+                  "type": "uint64"
+                },
+                {
+                  "components": [
+                    {
+                      "components": [
+                        {
+                          "internalType": "uint64",
+                          "name": "height",
+                          "type": "uint64"
+                        },
+                        {
+                          "internalType": "bytes32",
+                          "name": "previousHash",
+                          "type": "bytes32"
+                        },
+                        {
+                          "internalType": "uint64",
+                          "name": "nonce",
+                          "type": "uint64"
+                        },
+                        {
+                          "internalType": "bytes",
+                          "name": "data",
+                          "type": "bytes"
+                        }
+                      ],
+                      "internalType": "struct ChainState.BlockHeader",
+                      "name": "header",
+                      "type": "tuple"
+                    },
+                    {
+                      "internalType": "bytes32",
+                      "name": "blockHash",
+                      "type": "bytes32"
+                    }
+                  ],
+                  "internalType": "struct ChainState.Block",
+                  "name": "lastBlock",
+                  "type": "tuple"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "reward",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct ChainState.ChainStateData",
+              "name": "",
+              "type": "tuple"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "hashLayer",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_hashLayer",
+              "type": "address"
+            }
+          ],
+          "name": "setHashLayer",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "newDifficulty",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "components": [
+                    {
+                      "internalType": "uint64",
+                      "name": "height",
+                      "type": "uint64"
+                    },
+                    {
+                      "internalType": "bytes32",
+                      "name": "previousHash",
+                      "type": "bytes32"
+                    },
+                    {
+                      "internalType": "uint64",
+                      "name": "nonce",
+                      "type": "uint64"
+                    },
+                    {
+                      "internalType": "bytes",
+                      "name": "data",
+                      "type": "bytes"
+                    }
+                  ],
+                  "internalType": "struct ChainState.BlockHeader",
+                  "name": "header",
+                  "type": "tuple"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "blockHash",
+                  "type": "bytes32"
+                }
+              ],
+              "internalType": "struct ChainState.Block",
+              "name": "newBlock",
+              "type": "tuple"
+            },
+            {
+              "internalType": "uint256",
+              "name": "newReward",
+              "type": "uint256"
+            }
+          ],
+          "name": "updateChainState",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ]
+    },
+    "HashLayer#HashLayer": {
+      "address": "0xcdF351f077eEeb738D974AC60107Cc275541812a",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_chainState",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_balanceKeeper",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint64",
+              "name": "height",
+              "type": "uint64"
+            },
+            {
+              "indexed": true,
+              "internalType": "bytes32",
+              "name": "blockHash",
+              "type": "bytes32"
+            },
+            {
+              "indexed": false,
+              "internalType": "bytes32",
+              "name": "previousHash",
+              "type": "bytes32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint64",
+              "name": "nonce",
+              "type": "uint64"
+            },
+            {
+              "indexed": false,
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "miner",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "reward",
+              "type": "uint256"
+            }
+          ],
+          "name": "BlockCreated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "controller",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "keeper",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "CoinsMinted",
+          "type": "event"
+        },
+        {
+          "inputs": [],
+          "name": "balanceKeeper",
+          "outputs": [
+            {
+              "internalType": "contract BalanceKeeper",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint64",
+              "name": "height",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "previousHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "nonce",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "name": "calculateBlockHash",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "chainState",
+          "outputs": [
+            {
+              "internalType": "contract ChainState",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint64",
+              "name": "nonce",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "imageUrl",
+              "type": "bytes"
+            },
+            {
+              "internalType": "address",
+              "name": "chainId",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "keeper",
+              "type": "address"
+            }
+          ],
+          "name": "createBlock",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "chainId",
+              "type": "address"
+            }
+          ],
+          "name": "getChainObject",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "chainId",
+              "type": "address"
+            }
+          ],
+          "name": "getChainState",
+          "outputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "difficulty",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "lastAdjustmentTime",
+                  "type": "uint64"
+                },
+                {
+                  "components": [
+                    {
+                      "components": [
+                        {
+                          "internalType": "uint64",
+                          "name": "height",
+                          "type": "uint64"
+                        },
+                        {
+                          "internalType": "bytes32",
+                          "name": "previousHash",
+                          "type": "bytes32"
+                        },
+                        {
+                          "internalType": "uint64",
+                          "name": "nonce",
+                          "type": "uint64"
+                        },
+                        {
+                          "internalType": "bytes",
+                          "name": "data",
+                          "type": "bytes"
+                        }
+                      ],
+                      "internalType": "struct ChainState.BlockHeader",
+                      "name": "header",
+                      "type": "tuple"
+                    },
+                    {
+                      "internalType": "bytes32",
+                      "name": "blockHash",
+                      "type": "bytes32"
+                    }
+                  ],
+                  "internalType": "struct ChainState.Block",
+                  "name": "lastBlock",
+                  "type": "tuple"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "reward",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct ChainState.ChainStateData",
+              "name": "",
+              "type": "tuple"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "controller",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "keeper",
+              "type": "address"
+            }
+          ],
+          "name": "mint",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "hash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "difficulty",
+              "type": "uint256"
+            }
+          ],
+          "name": "verifyProofOfWork",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        }
+      ]
     }
   }
 }

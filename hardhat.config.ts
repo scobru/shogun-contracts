@@ -1,10 +1,12 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import "dotenv/config";
+/* import "dotenv/config";
 
 import { decrypt } from '@tka85/dotenvenc';
-decrypt();
+decrypt(); */
 
+import dotenv from "dotenv";
+dotenv.config();
 
 // Ensure you have a .env file with your PRIVATE_KEY and SEPOLIA_API_KEY
 const PRIVATE_KEY =
@@ -25,6 +27,15 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    hardhat: {
+      blockGasLimit: 12000000,
+      gasPrice: "auto",
+    },
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      blockGasLimit: 12000000,
+      gasPrice: "auto",
+    },
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
       accounts: [PRIVATE_KEY],

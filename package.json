@@ -8,7 +8,13 @@
     "deploy:stealthPool:local": "yarn hardhat ignition deploy ./ignition/modules/stealthPool.ts --network localhost",
     "deploy:stealthPool:sepolia": "yarn hardhat ignition deploy ./ignition/modules/stealthPool.ts --network sepolia --verify",
     "deploy:stealthPool:advanced:sepolia": "yarn hardhat ignition deploy ./ignition/modules/stealthPoolAdvanced.ts --network sepolia --verify",
-    "post-deployment": "ts-node scripts/post-deployment.ts"
+    "deploy:smartWallet:local": "yarn hardhat ignition deploy ./ignition/modules/smartWallet.ts --network localhost",
+    "deploy:smartWallet:sepolia": "yarn hardhat ignition deploy ./ignition/modules/smartWallet.ts --network sepolia --verify",
+    "deploy:hashLayer:local": "yarn hardhat ignition deploy ./ignition/modules/hashLayer.ts --network localhost",
+    "deploy:hashLayer:sepolia": "yarn hardhat ignition deploy ./ignition/modules/hashLayer.ts --network sepolia ",
+    "post-deployment": "ts-node scripts/post-deployment.ts",
+    "encrypt": "dotenvenc -e .env -o .env.enc",
+    "decrypt": "dotenvenc -d .env.enc -o .env"
   },
   "author": "scobru",
   "license": "MIT",
