@@ -2,30 +2,38 @@
 
 A comprehensive smart contract system for decentralized relay management and stealth address functionality on Ethereum and Optimism networks.
 
-## Overview test
+## Overview
 
-Shogun Contracts provides two main functionalities:
-
-1. **Relay Payment Router**: A subscription-based system for managing decentralized relays with usage-based billing
-2. **Stealth Address System**: Privacy-focused payment infrastructure with stealth address generation and payment forwarding
+Shogun Contracts provides a comprehensive smart contract system for decentralized relay management, privacy-focused payments, and cross-chain functionality.
 
 ## Architecture
 
-The project consists of three main contract categories:
+The project consists of five main contract categories:
 
 ### Relay Registry (`/contracts/registry/`)
 
 - **ShogunRelayRegistry.sol**: On-chain registry for relay discovery, staking, storage deals, and slashing
 
-### Relay System (`/contracts/relay/`)
-
-- **RelayPaymentRouter.sol**: Core contract for relay registration, subscription management, and payment distribution
-
 ### Stealth System (`/contracts/stealth/`)
 
 - **StealthKeyRegistry.sol**: Manages stealth key registration and metadata
 - **PaymentForwarder.sol**: Handles stealth payments with anti-spam measures
+- **StealthPool.sol**: Privacy-focused mixing pool for stealth transactions with Merkle tree commitments
 - **IPaymentForwarderHookReceiver.sol**: Interface for payment hook receivers
+
+### Smart Wallet (`/contracts/wallet/`)
+
+- **SmartWallet.sol**: Multi-sig wallet with social recovery and batch transactions
+- **SmartWalletFactory.sol**: Factory contract for deploying SmartWallet instances
+
+### Bridge (`/contracts/bridge/`)
+
+- **BridgeDex.sol**: Decentralized cross-chain bridge for token transfers
+
+### IPFS (`/contracts/ipfs/`)
+
+- **IPCMFactory.sol**: Factory for managing IPCM (IPFS Content Management) instances
+- **ipcm.sol**: Contract for managing encrypted data on IPFS
 
 ## Smart Contracts
 
@@ -73,25 +81,6 @@ npx hardhat verify --network baseSepolia <ADDRESS> <USDC> <MIN_STAKE> <DELAY>
 
 ---
 
-### RelayPaymentRouter
-
-The main contract for managing decentralized relays and user subscriptions.
-
-**Key Features:**
-
-- Relay registration and management
-- Subscription-based billing (30-day cycles)
-- Usage-based pricing (0.001 ETH per GB)
-- Automatic payment distribution
-- Emergency pause functionality
-
-**Core Functions:**
-
-- `registerRelay(string url)`: Register a new relay
-- `subscribeToRelay(address relay, uint256 amount)`: Create a subscription
-- `useRelayService(address relay, uint256 mbUsed)`: Record usage
-- `withdrawRelayEarnings()`: Withdraw relay earnings
-
 ### StealthKeyRegistry
 
 Manages stealth key registration for privacy-focused transactions.
@@ -126,6 +115,70 @@ Handles stealth payments with built-in anti-spam protection.
 - `sendToken()`: Send ERC-20 tokens to stealth address
 - `withdraw()`: Withdraw funds from stealth address
 - `collectTolls()`: Collect accumulated tolls
+
+### StealthPool
+
+Privacy-focused mixing pool for stealth transactions using cryptographic commitments.
+
+**Key Features:**
+
+- Merkle tree-based commitment system
+- Nonce-based replay attack prevention
+- Auto-generated Merkle roots
+- Direct user payments (no relayer required)
+
+**Core Functions:**
+
+- `deposit()`: Deposit funds with cryptographic commitment
+- `withdraw()`: Withdraw funds using Merkle proof
+- `updateMerkleRoot()`: Update the Merkle root with new deposits
+
+### SmartWallet
+
+Multi-signature wallet with advanced features for secure asset management.
+
+**Key Features:**
+
+- Multi-sig support with configurable threshold
+- Social recovery via guardians
+- Batch transaction execution
+- Proposal-based execution system
+
+**Core Functions:**
+
+- `addSigner()`: Add a new signer
+- `proposeExecution()`: Propose a transaction
+- `approveExecution()`: Approve a proposed transaction
+- `executeProposal()`: Execute an approved proposal
+- `initiateRecovery()`: Start social recovery process
+
+### BridgeDex
+
+Decentralized cross-chain bridge for trustless token transfers.
+
+**Key Features:**
+
+- Cross-chain token transfers
+- Provider-based liquidity system
+- Protocol fee management
+- Ticket-based bridging mechanism
+
+**Core Functions:**
+
+- `lock()`: Lock tokens for cross-chain transfer
+- `unlock()`: Unlock tokens on destination chain
+- `acceptRequest()`: Accept a bridge request
+- `withdraw()`: Withdraw bridged tokens
+
+### IPCMFactory
+
+Factory contract for managing IPFS Content Management instances.
+
+**Key Features:**
+
+- Deploy IPCM instances
+- Manage encrypted data on IPFS
+- Owner-controlled access
 
 ## Technology Stack
 
@@ -238,24 +291,19 @@ npx hardhat test
 
 Test files include:
 
-- `RelayMembership.ts`: Relay system functionality tests
-- `Lock.ts`: Basic contract interaction tests
+- Tests for all deployed contracts
 
 ## Usage Examples
 
 ### Relay Registration
 
 ```solidity
-// Register a new relay
-relayPaymentRouter.registerRelay("https://my-relay.com/gun");
-```
-
-### User Subscription
-
-```solidity
-// Subscribe to a relay with 1 GB allocation
-uint256 amount = 0.001 ether; // 1 GB
-relayPaymentRouter.subscribeToRelay(relayAddress, amount);
+// Register a new relay with staking
+shogunRelayRegistry.registerRelay(
+    "https://my-relay.com/gun",
+    gunPubKey,
+    stakeAmount
+);
 ```
 
 ### Stealth Key Registration
@@ -278,6 +326,29 @@ paymentForwarder.send{value: amount + toll}(
     ephemeralPublicKey,
     encryptedData
 );
+```
+
+### Stealth Pool Deposit
+
+```solidity
+// Deposit to stealth pool with commitment
+stealthPool.deposit{value: amount}(commitment, nonce);
+```
+
+### Smart Wallet Multi-sig
+
+```solidity
+// Propose and execute transaction
+uint256 proposalId = smartWallet.proposeExecution(target, data);
+smartWallet.approveExecution(proposalId);
+smartWallet.executeProposal(proposalId);
+```
+
+### Cross-chain Bridge
+
+```solidity
+// Lock tokens for cross-chain transfer
+bridgeDex.lock(tokenAddress, amount, destinationChainId);
 ```
 
 ## Security Features
