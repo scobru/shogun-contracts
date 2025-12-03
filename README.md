@@ -11,7 +11,11 @@ Shogun Contracts provides two main functionalities:
 
 ## Architecture
 
-The project consists of two main contract categories:
+The project consists of three main contract categories:
+
+### Relay Registry (`/contracts/registry/`)
+
+- **ShogunRelayRegistry.sol**: On-chain registry for relay discovery, staking, storage deals, and slashing
 
 ### Relay System (`/contracts/relay/`)
 
@@ -24,6 +28,50 @@ The project consists of two main contract categories:
 - **IPaymentForwarderHookReceiver.sol**: Interface for payment hook receivers
 
 ## Smart Contracts
+
+### ShogunRelayRegistry
+
+On-chain registry for the Shogun relay network. Deployed on **Base Sepolia** (testnet) and **Base** (mainnet).
+
+**Key Features:**
+
+- **Relay Registration**: Operators register with endpoint URL and GunDB public key
+- **USDC Staking**: 100 USDC minimum stake (anti-spam, skin-in-the-game)
+- **Storage Deals**: On-chain registration of storage deals for dispute resolution
+- **Slashing**: Economic penalties for missed proofs (1%) and data loss (10%)
+- **Discovery**: Query active relays directly from the blockchain
+
+**Core Functions:**
+
+- `registerRelay(endpoint, gunPubKey, stakeAmount)`: Register as a relay operator
+- `updateRelay(newEndpoint, newGunPubKey)`: Update relay info
+- `increaseStake(amount)`: Add more stake
+- `requestUnstake()`: Begin 7-day unstaking period
+- `withdrawStake()`: Withdraw after unstaking delay
+- `registerDeal(dealId, client, cid, sizeMB, priceUSDC, durationDays)`: Register storage deal
+- `reportMissedProof(relay, dealId, evidence)`: Report proof violation
+- `reportDataLoss(relay, dealId, evidence)`: Report data loss
+- `getActiveRelays()`: List all active relays
+- `getRelayInfo(address)`: Get relay details
+
+**Contract Addresses:**
+
+| Network | Address | USDC |
+|---------|---------|------|
+| Base Sepolia | TBD | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+| Base Mainnet | TBD | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+
+**Deployment:**
+
+```bash
+# Deploy to Base Sepolia
+npx hardhat run scripts/deploy-relay-registry.ts --network baseSepolia
+
+# Verify on BaseScan
+npx hardhat verify --network baseSepolia <ADDRESS> <USDC> <MIN_STAKE> <DELAY>
+```
+
+---
 
 ### RelayPaymentRouter
 
@@ -128,9 +176,20 @@ The project supports multiple networks:
 
 - **Sepolia**: Ethereum testnet
 - **Optimism Sepolia**: Optimism testnet
+- **Base Sepolia**: Base testnet (for ShogunRelayRegistry)
+- **Base**: Base mainnet (for ShogunRelayRegistry)
 - **Localhost**: Local development network
 
 Network configuration is handled in `hardhat.config.ts`.
+
+**Required Environment Variables:**
+
+```bash
+PRIVATE_KEY=0x...               # Deployment wallet private key
+ALCHEMY_API_KEY=...             # Alchemy API key
+BASESCAN_API_KEY=...            # BaseScan API key (for verification)
+BASE_SEPOLIA_RPC_URL=...        # Optional: custom RPC URL
+```
 
 ## Deployment
 

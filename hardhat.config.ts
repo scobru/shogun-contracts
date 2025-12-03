@@ -46,9 +46,42 @@ const config: HardhatUserConfig = {
       accounts: [PRIVATE_KEY],
       chainId: 11155420,
     },
+    baseSepolia: {
+      url: process.env.BASE_SEPOLIA_RPC_URL || `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+      accounts: [PRIVATE_KEY],
+      chainId: 84532,
+    },
+    base: {
+      url: process.env.BASE_RPC_URL || `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+      accounts: [PRIVATE_KEY],
+      chainId: 8453,
+    },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: {
+      sepolia: process.env.ETHERSCAN_API_KEY || "",
+      optimismSepolia: process.env.OPTIMISM_ETHERSCAN_API_KEY || "",
+      baseSepolia: process.env.BASESCAN_API_KEY || "",
+      base: process.env.BASESCAN_API_KEY || "",
+    },
+    customChains: [
+      {
+        network: "baseSepolia",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org",
+        },
+      },
+      {
+        network: "base",
+        chainId: 8453,
+        urls: {
+          apiURL: "https://api.basescan.org/api",
+          browserURL: "https://basescan.org",
+        },
+      },
+    ],
   },
 };
 
