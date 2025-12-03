@@ -282,14 +282,18 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         if (_amount == 0) revert InvalidAmount();
         RelayInfo storage relay = relays[msg.sender];
         if (relay.status == RelayStatus.Inactive) revert RelayNotRegistered();
+        if (relay.status == RelayStatus.Slashed) revert RelayAlreadySlashed();
 
         stakingToken.safeTransferFrom(msg.sender, address(this), _amount);
         relay.stakedAmount += _amount;
 
-        // If was unstaking, cancel unstaking
+        // If was unstaking, cancel unstaking and re-add to active list
         if (relay.status == RelayStatus.Unstaking) {
             relay.status = RelayStatus.Active;
             relay.unstakeRequestedAt = 0;
+            // Re-add to active relays list
+            activeRelayIndex[msg.sender] = activeRelays.length;
+            activeRelays.push(msg.sender);
         }
 
         emit StakeIncreased(msg.sender, _amount, relay.stakedAmount);
@@ -484,8 +488,11 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
 
         // If stake falls below minimum, deactivate
         if (relay.stakedAmount < minStake) {
+            // Only remove from active list if currently Active (Unstaking already removed)
+            if (relay.status == RelayStatus.Active) {
+                _removeFromActiveRelays(_relay);
+            }
             relay.status = RelayStatus.Slashed;
-            _removeFromActiveRelays(_relay);
             emit RelayDeactivated(_relay, "Stake below minimum after slash");
         }
 

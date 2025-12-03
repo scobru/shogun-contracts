@@ -9,6 +9,7 @@
     "deploy:stealthPool:sepolia": "yarn hardhat ignition deploy ./ignition/modules/stealthPool.ts --network sepolia --verify",
     "deploy:registry:local": "yarn hardhat ignition deploy ./ignition/modules/relayRegistry.ts --network localhost",
     "deploy:registry:baseSepolia": "yarn hardhat ignition deploy ./ignition/modules/relayRegistry.ts --network baseSepolia --verify",
+    "reset:deployments:baseSepolia": "Remove-Item -Recurse -Force ignition\\deployments\\chain-84532 -ErrorAction SilentlyContinue",
     "post-deployment": "ts-node scripts/post-deployment.ts",
     "encrypt": "dotenvenc -e .env -o .env.enc",
     "decrypt": "dotenvenc -d .env.enc -o .env"
