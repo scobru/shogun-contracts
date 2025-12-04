@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * Features:
  * - Relay registration with USDC stake
  * - Storage deal registration for dispute resolution
- * - Slashing mechanism for misbehavior
+ * - Decentralized griefing-based slashing (no owner required)
  * - Discovery of active relays
  */
 contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
@@ -42,6 +42,7 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         RelayStatus status;         // Current status
         uint256 totalDeals;         // Total deals processed
         uint256 totalSlashed;       // Total amount slashed
+        uint256 griefingRatio;      // Cost to slash 1 USDC (in basis points, e.g., 100 = 0.01 USDC cost per 1 USDC slashed)
     }
 
     /// @notice Storage deal information
@@ -55,6 +56,7 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         uint256 createdAt;          // Creation timestamp
         uint256 expiresAt;          // Expiration timestamp
         bool active;                // Whether deal is active
+        uint256 clientStake;        // Optional client stake for better griefing ratio
     }
 
     /// @notice Slash report
@@ -64,7 +66,8 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         address relay;              // Relay being reported
         bytes32 dealId;             // Related deal (if any)
         string reason;              // Reason for slash
-        uint256 amount;             // Amount slashed
+        uint256 amount;             // Amount slashed from relay
+        uint256 cost;               // Cost paid by reporter
         uint256 timestamp;          // When slash occurred
     }
 
@@ -78,6 +81,13 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Unstaking delay period (seconds)
     uint256 public unstakingDelay;
+
+    /// @notice Default griefing ratio for clients without stake (basis points)
+    /// e.g., 500 = 0.05 USDC cost to slash 1 USDC from relay
+    uint256 public defaultGriefingRatio;
+
+    /// @notice Griefing ratio for clients with stake (basis points, typically lower)
+    uint256 public stakedClientGriefingRatio;
 
     /// @notice Slash percentage for missed proofs (basis points, 100 = 1%)
     uint256 public missedProofSlashBps;
@@ -106,11 +116,11 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
     /// @notice Index in activeRelays array
     mapping(address => uint256) private activeRelayIndex;
 
-    /// @notice Authorized slashers (can report violations)
-    mapping(address => bool) public authorizedSlashers;
-
     /// @notice Total reports counter
     uint256 public totalReports;
+
+    /// @notice Treasury address (receives slashed amounts, can be zero address for burning)
+    address public treasury;
 
     // =========================================== Events ==========================================
 
@@ -157,7 +167,8 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         string cid,
         uint256 sizeMB,
         uint256 priceUSDC,
-        uint256 expiresAt
+        uint256 expiresAt,
+        uint256 clientStake
     );
 
     event StorageDealCompleted(
@@ -170,10 +181,21 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         address indexed relay,
         address indexed reporter,
         uint256 amount,
+        uint256 cost,
         string reason
     );
 
-    event SlasherAuthorized(address indexed slasher, bool authorized);
+    event ClientStakeDeposited(
+        bytes32 indexed dealId,
+        address indexed client,
+        uint256 amount
+    );
+
+    event ClientStakeWithdrawn(
+        bytes32 indexed dealId,
+        address indexed client,
+        uint256 amount
+    );
 
     // =========================================== Errors ==========================================
 
@@ -188,9 +210,11 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
     error DealNotFound();
     error DealAlreadyExists();
     error NotDealParty();
-    error NotAuthorizedSlasher();
     error RelayAlreadySlashed();
     error InvalidSlashAmount();
+    error InsufficientGriefingCost();
+    error DealNotActive();
+    error ClientStakeStillLocked();
 
     // ========================================= Constructor ========================================
 
@@ -199,15 +223,24 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
      * @param _stakingToken USDC token address on Base Sepolia
      * @param _minStake Minimum stake in USDC (6 decimals)
      * @param _unstakingDelay Delay before stake can be withdrawn (seconds)
+     * @param _treasury Treasury address (zero address = burn slashed tokens)
      */
     constructor(
         address _stakingToken,
         uint256 _minStake,
-        uint256 _unstakingDelay
+        uint256 _unstakingDelay,
+        address _treasury
     ) Ownable(msg.sender) {
         stakingToken = IERC20(_stakingToken);
         minStake = _minStake;
         unstakingDelay = _unstakingDelay;
+        treasury = _treasury;
+        
+        // Default griefing ratios (basis points)
+        defaultGriefingRatio = 500;        // 0.05 USDC cost per 1 USDC slashed (5%)
+        stakedClientGriefingRatio = 100;   // 0.01 USDC cost per 1 USDC slashed (1%) for staked clients
+        
+        // Slash percentages
         missedProofSlashBps = 100;    // 1%
         dataLossSlashBps = 1000;      // 10%
     }
@@ -219,11 +252,13 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
      * @param _endpoint HTTP/WebSocket endpoint URL
      * @param _gunPubKey GunDB public key for verification
      * @param _stakeAmount Amount of USDC to stake
+     * @param _griefingRatio Custom griefing ratio (0 to use default)
      */
     function registerRelay(
         string calldata _endpoint,
         string calldata _gunPubKey,
-        uint256 _stakeAmount
+        uint256 _stakeAmount,
+        uint256 _griefingRatio
     ) external nonReentrant whenNotPaused {
         if (bytes(_endpoint).length == 0) revert InvalidEndpoint();
         if (_stakeAmount < minStake) revert InsufficientStake();
@@ -231,6 +266,9 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
 
         // Transfer stake
         stakingToken.safeTransferFrom(msg.sender, address(this), _stakeAmount);
+
+        // Use custom ratio or default
+        uint256 griefingRatio = _griefingRatio > 0 ? _griefingRatio : defaultGriefingRatio;
 
         // Create relay info
         relays[msg.sender] = RelayInfo({
@@ -242,7 +280,8 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
             unstakeRequestedAt: 0,
             status: RelayStatus.Active,
             totalDeals: 0,
-            totalSlashed: 0
+            totalSlashed: 0,
+            griefingRatio: griefingRatio
         });
 
         // Add to active relays
@@ -349,6 +388,7 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
      * @param _sizeMB Size in MB
      * @param _priceUSDC Total price paid
      * @param _durationDays Deal duration in days
+     * @param _clientStake Optional client stake for better griefing ratio
      */
     function registerDeal(
         bytes32 _dealId,
@@ -356,13 +396,19 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         string calldata _cid,
         uint256 _sizeMB,
         uint256 _priceUSDC,
-        uint256 _durationDays
+        uint256 _durationDays,
+        uint256 _clientStake
     ) external {
         RelayInfo storage relay = relays[msg.sender];
         if (relay.status != RelayStatus.Active) revert RelayNotActive();
         if (deals[_dealId].createdAt != 0) revert DealAlreadyExists();
 
         uint256 expiresAt = block.timestamp + (_durationDays * 1 days);
+
+        // If client wants to stake, transfer it
+        if (_clientStake > 0) {
+            stakingToken.safeTransferFrom(_client, address(this), _clientStake);
+        }
 
         deals[_dealId] = StorageDeal({
             dealId: _dealId,
@@ -373,7 +419,8 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
             priceUSDC: _priceUSDC,
             createdAt: block.timestamp,
             expiresAt: expiresAt,
-            active: true
+            active: true,
+            clientStake: _clientStake
         });
 
         dealsByRelay[msg.sender].push(_dealId);
@@ -387,8 +434,52 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
             _cid,
             _sizeMB,
             _priceUSDC,
-            expiresAt
+            expiresAt,
+            _clientStake
         );
+
+        if (_clientStake > 0) {
+            emit ClientStakeDeposited(_dealId, _client, _clientStake);
+        }
+    }
+
+    /**
+     * @notice Add client stake to an existing deal (improves griefing ratio)
+     * @param _dealId Deal identifier
+     * @param _amount Amount to stake
+     */
+    function addClientStake(bytes32 _dealId, uint256 _amount) external nonReentrant {
+        StorageDeal storage deal = deals[_dealId];
+        if (deal.createdAt == 0) revert DealNotFound();
+        if (msg.sender != deal.client) revert NotDealParty();
+        if (!deal.active) revert DealNotActive();
+
+        stakingToken.safeTransferFrom(msg.sender, address(this), _amount);
+        deal.clientStake += _amount;
+
+        emit ClientStakeDeposited(_dealId, msg.sender, _amount);
+    }
+
+    /**
+     * @notice Withdraw client stake after deal completion
+     * @param _dealId Deal identifier
+     */
+    function withdrawClientStake(bytes32 _dealId) external nonReentrant {
+        StorageDeal storage deal = deals[_dealId];
+        if (deal.createdAt == 0) revert DealNotFound();
+        if (msg.sender != deal.client) revert NotDealParty();
+        
+        // Can only withdraw if deal is completed or expired
+        if (deal.active && block.timestamp < deal.expiresAt) {
+            revert ClientStakeStillLocked();
+        }
+
+        uint256 amount = deal.clientStake;
+        deal.clientStake = 0;
+
+        stakingToken.safeTransfer(msg.sender, amount);
+
+        emit ClientStakeWithdrawn(_dealId, msg.sender, amount);
     }
 
     /**
@@ -408,50 +499,52 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
     // ========================================== Slashing ==========================================
 
     /**
-     * @notice Report a relay for missed storage proof
+     * @notice Client griefs relay for missed storage proof
      * @param _relay Relay address
-     * @param _dealId Related deal ID (optional, bytes32(0) if none)
+     * @param _dealId Related deal ID (must be active deal with this client)
      * @param _evidence Description of evidence
+     * @dev Client pays griefing cost to slash relay stake
      */
-    function reportMissedProof(
+    function griefMissedProof(
         address _relay,
         bytes32 _dealId,
         string calldata _evidence
-    ) external {
-        if (!authorizedSlashers[msg.sender] && msg.sender != owner()) {
-            revert NotAuthorizedSlasher();
-        }
-
-        _slashRelay(_relay, missedProofSlashBps, _dealId, _evidence);
-    }
-
-    /**
-     * @notice Report a relay for data loss
-     * @param _relay Relay address
-     * @param _dealId Related deal ID
-     * @param _evidence Description of evidence
-     */
-    function reportDataLoss(
-        address _relay,
-        bytes32 _dealId,
-        string calldata _evidence
-    ) external {
-        if (!authorizedSlashers[msg.sender] && msg.sender != owner()) {
-            revert NotAuthorizedSlasher();
-        }
-
-        // Verify deal exists and involves this relay
+    ) external nonReentrant {
         StorageDeal storage deal = deals[_dealId];
         if (deal.createdAt == 0) revert DealNotFound();
+        if (deal.client != msg.sender) revert NotDealParty();
+        if (!deal.active) revert DealNotActive();
         if (deal.relay != _relay) revert NotDealParty();
 
-        _slashRelay(_relay, dataLossSlashBps, _dealId, _evidence);
+        _griefRelay(_relay, missedProofSlashBps, _dealId, _evidence);
     }
 
     /**
-     * @notice Internal slash implementation
+     * @notice Client griefs relay for data loss
+     * @param _relay Relay address
+     * @param _dealId Related deal ID (must be active deal with this client)
+     * @param _evidence Description of evidence
+     * @dev Client pays griefing cost to slash relay stake
      */
-    function _slashRelay(
+    function griefDataLoss(
+        address _relay,
+        bytes32 _dealId,
+        string calldata _evidence
+    ) external nonReentrant {
+        StorageDeal storage deal = deals[_dealId];
+        if (deal.createdAt == 0) revert DealNotFound();
+        if (deal.client != msg.sender) revert NotDealParty();
+        if (!deal.active) revert DealNotActive();
+        if (deal.relay != _relay) revert NotDealParty();
+
+        _griefRelay(_relay, dataLossSlashBps, _dealId, _evidence);
+    }
+
+    /**
+     * @notice Internal grief implementation (decentralized slashing)
+     * @dev Implements Erasure-style griefing: reporter pays cost to slash relay
+     */
+    function _griefRelay(
         address _relay,
         uint256 _slashBps,
         bytes32 _dealId,
@@ -461,9 +554,23 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         if (relay.status == RelayStatus.Inactive) revert RelayNotRegistered();
         if (relay.status == RelayStatus.Slashed) revert RelayAlreadySlashed();
 
+        // Calculate slash amount
         uint256 slashAmount = (relay.stakedAmount * _slashBps) / 10000;
         if (slashAmount == 0) revert InvalidSlashAmount();
 
+        // Determine griefing ratio based on client stake
+        StorageDeal storage deal = deals[_dealId];
+        uint256 griefingRatio = deal.clientStake > 0 
+            ? stakedClientGriefingRatio 
+            : defaultGriefingRatio;
+
+        // Calculate cost: griefingRatio basis points of slashAmount
+        uint256 cost = (slashAmount * griefingRatio) / 10000;
+        
+        // Transfer cost from reporter
+        stakingToken.safeTransferFrom(msg.sender, address(this), cost);
+
+        // Slash relay stake
         relay.stakedAmount -= slashAmount;
         relay.totalSlashed += slashAmount;
 
@@ -483,12 +590,12 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
             dealId: _dealId,
             reason: _reason,
             amount: slashAmount,
+            cost: cost,
             timestamp: block.timestamp
         });
 
         // If stake falls below minimum, deactivate
         if (relay.stakedAmount < minStake) {
-            // Only remove from active list if currently Active (Unstaking already removed)
             if (relay.status == RelayStatus.Active) {
                 _removeFromActiveRelays(_relay);
             }
@@ -496,10 +603,23 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
             emit RelayDeactivated(_relay, "Stake below minimum after slash");
         }
 
-        // Transfer slashed amount to treasury (owner)
-        stakingToken.safeTransfer(owner(), slashAmount);
+        // Transfer slashed amount to treasury (or burn if treasury is zero)
+        if (treasury != address(0)) {
+            stakingToken.safeTransfer(treasury, slashAmount);
+        } else {
+            // Burn by transferring to zero address (if token supports it)
+            // Or keep in contract as burned
+            stakingToken.safeTransfer(address(0), slashAmount);
+        }
 
-        emit RelaySlashed(reportId, _relay, msg.sender, slashAmount, _reason);
+        // Cost is also sent to treasury (or burned)
+        if (treasury != address(0)) {
+            stakingToken.safeTransfer(treasury, cost);
+        } else {
+            stakingToken.safeTransfer(address(0), cost);
+        }
+
+        emit RelaySlashed(reportId, _relay, msg.sender, slashAmount, cost, _reason);
     }
 
     // ========================================== Discovery =========================================
@@ -556,6 +676,34 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         return relays[_relay].status == RelayStatus.Active;
     }
 
+    /**
+     * @notice Calculate griefing cost for slashing a relay
+     * @param _relay Relay address
+     * @param _slashBps Slash percentage in basis points
+     * @param _dealId Deal ID (to check client stake)
+     * @return slashAmount Amount that would be slashed
+     * @return cost Cost that reporter would pay
+     */
+    function calculateGriefingCost(
+        address _relay,
+        uint256 _slashBps,
+        bytes32 _dealId
+    ) external view returns (uint256 slashAmount, uint256 cost) {
+        RelayInfo storage relay = relays[_relay];
+        if (relay.status == RelayStatus.Inactive) {
+            return (0, 0);
+        }
+
+        slashAmount = (relay.stakedAmount * _slashBps) / 10000;
+        
+        StorageDeal storage deal = deals[_dealId];
+        uint256 griefingRatio = deal.clientStake > 0 
+            ? stakedClientGriefingRatio 
+            : defaultGriefingRatio;
+        
+        cost = (slashAmount * griefingRatio) / 10000;
+    }
+
     // ========================================== Admin =============================================
 
     /**
@@ -585,13 +733,21 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Authorize or revoke a slasher
-     * @param _slasher Address to authorize/revoke
-     * @param _authorized Whether to authorize
+     * @notice Set griefing ratios
+     * @param _defaultRatio Default griefing ratio (basis points)
+     * @param _stakedRatio Griefing ratio for staked clients (basis points)
      */
-    function setAuthorizedSlasher(address _slasher, bool _authorized) external onlyOwner {
-        authorizedSlashers[_slasher] = _authorized;
-        emit SlasherAuthorized(_slasher, _authorized);
+    function setGriefingRatios(uint256 _defaultRatio, uint256 _stakedRatio) external onlyOwner {
+        defaultGriefingRatio = _defaultRatio;
+        stakedClientGriefingRatio = _stakedRatio;
+    }
+
+    /**
+     * @notice Set treasury address (zero address = burn)
+     * @param _treasury New treasury address
+     */
+    function setTreasury(address _treasury) external onlyOwner {
+        treasury = _treasury;
     }
 
     /**
@@ -636,4 +792,3 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
         delete activeRelayIndex[_relay];
     }
 }
-

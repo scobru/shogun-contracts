@@ -24,22 +24,27 @@ describe("ShogunRelayRegistry", function () {
     mockUSDC = await MockERC20.deploy("Mock USDC", "USDC", 6);
     await mockUSDC.waitForDeployment();
 
-    // Deploy registry
+    // Deploy registry with treasury (using owner as treasury)
     const ShogunRelayRegistry = await ethers.getContractFactory("ShogunRelayRegistry");
     registry = await ShogunRelayRegistry.deploy(
       await mockUSDC.getAddress(),
       MIN_STAKE,
-      UNSTAKING_DELAY
+      UNSTAKING_DELAY,
+      owner.address // treasury
     );
     await registry.waitForDeployment();
 
     // Mint USDC to relays for staking
     await mockUSDC.mint(relay1.address, ethers.parseUnits("1000", 6));
     await mockUSDC.mint(relay2.address, ethers.parseUnits("1000", 6));
+    
+    // Mint USDC to client for griefing costs
+    await mockUSDC.mint(client.address, ethers.parseUnits("1000", 6));
 
     // Approve registry to spend USDC
     await mockUSDC.connect(relay1).approve(await registry.getAddress(), ethers.MaxUint256);
     await mockUSDC.connect(relay2).approve(await registry.getAddress(), ethers.MaxUint256);
+    await mockUSDC.connect(client).approve(await registry.getAddress(), ethers.MaxUint256);
   });
 
   describe("Registration", function () {
@@ -47,7 +52,8 @@ describe("ShogunRelayRegistry", function () {
       await registry.connect(relay1).registerRelay(
         "https://relay1.example.com",
         "gunpubkey123",
-        MIN_STAKE
+        MIN_STAKE,
+        0 // Use default griefing ratio
       );
 
       const info = await registry.getRelayInfo(relay1.address);
@@ -58,30 +64,43 @@ describe("ShogunRelayRegistry", function () {
       expect(info.status).to.equal(1); // Active
     });
 
+    it("Should register with custom griefing ratio", async function () {
+      const customRatio = 300; // 3%
+      await registry.connect(relay1).registerRelay(
+        "https://relay1.example.com",
+        "gunpubkey123",
+        MIN_STAKE,
+        customRatio
+      );
+
+      const info = await registry.getRelayInfo(relay1.address);
+      expect(info.griefingRatio).to.equal(customRatio);
+    });
+
     it("Should fail with insufficient stake", async function () {
       const lowStake = ethers.parseUnits("50", 6); // Below minimum
       await expect(
-        registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", lowStake)
+        registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", lowStake, 0)
       ).to.be.revertedWithCustomError(registry, "InsufficientStake");
     });
 
     it("Should fail with empty endpoint", async function () {
       await expect(
-        registry.connect(relay1).registerRelay("", "pubkey", MIN_STAKE)
+        registry.connect(relay1).registerRelay("", "pubkey", MIN_STAKE, 0)
       ).to.be.revertedWithCustomError(registry, "InvalidEndpoint");
     });
 
     it("Should fail if already registered", async function () {
-      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE);
+      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE, 0);
       
       await expect(
-        registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE)
+        registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE, 0)
       ).to.be.revertedWithCustomError(registry, "RelayAlreadyRegistered");
     });
 
     it("Should add relay to active list", async function () {
-      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey1", MIN_STAKE);
-      await registry.connect(relay2).registerRelay("https://relay2.example.com", "pubkey2", MIN_STAKE);
+      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey1", MIN_STAKE, 0);
+      await registry.connect(relay2).registerRelay("https://relay2.example.com", "pubkey2", MIN_STAKE, 0);
 
       const activeRelays = await registry.getActiveRelays();
       expect(activeRelays.length).to.equal(2);
@@ -91,7 +110,7 @@ describe("ShogunRelayRegistry", function () {
 
     it("Should emit RelayRegistered event", async function () {
       await expect(
-        registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE)
+        registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE, 0)
       )
         .to.emit(registry, "RelayRegistered")
         .withArgs(relay1.address, relay1.address, "https://relay1.example.com", "pubkey", MIN_STAKE);
@@ -100,7 +119,7 @@ describe("ShogunRelayRegistry", function () {
 
   describe("Update Relay", function () {
     beforeEach(async function () {
-      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey1", MIN_STAKE);
+      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey1", MIN_STAKE, 0);
     });
 
     it("Should update endpoint", async function () {
@@ -130,7 +149,7 @@ describe("ShogunRelayRegistry", function () {
 
   describe("Staking", function () {
     beforeEach(async function () {
-      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE);
+      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE, 0);
     });
 
     it("Should increase stake", async function () {
@@ -186,17 +205,18 @@ describe("ShogunRelayRegistry", function () {
     const dealId = ethers.id("deal-001");
 
     beforeEach(async function () {
-      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE);
+      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE, 0);
     });
 
-    it("Should register a storage deal", async function () {
+    it("Should register a storage deal without client stake", async function () {
       await registry.connect(relay1).registerDeal(
         dealId,
         client.address,
         "QmTestCid123",
         100, // 100 MB
         ethers.parseUnits("1", 6), // 1 USDC
-        30 // 30 days
+        30, // 30 days
+        0 // No client stake
       );
 
       const deal = await registry.deals(dealId);
@@ -205,18 +225,40 @@ describe("ShogunRelayRegistry", function () {
       expect(deal.cid).to.equal("QmTestCid123");
       expect(deal.sizeMB).to.equal(100);
       expect(deal.active).to.be.true;
+      expect(deal.clientStake).to.equal(0);
+    });
+
+    it("Should register a storage deal with client stake", async function () {
+      const clientStake = ethers.parseUnits("10", 6); // 10 USDC
+      const clientBalanceBefore = await mockUSDC.balanceOf(client.address);
+      
+      await registry.connect(relay1).registerDeal(
+        dealId,
+        client.address,
+        "QmTestCid123",
+        100,
+        ethers.parseUnits("1", 6),
+        30,
+        clientStake
+      );
+
+      const deal = await registry.deals(dealId);
+      expect(deal.clientStake).to.equal(clientStake);
+      
+      const clientBalanceAfter = await mockUSDC.balanceOf(client.address);
+      expect(clientBalanceBefore - clientBalanceAfter).to.equal(clientStake);
     });
 
     it("Should fail if relay not active", async function () {
       await registry.connect(relay1).requestUnstake();
 
       await expect(
-        registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30)
+        registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, 0)
       ).to.be.revertedWithCustomError(registry, "RelayNotActive");
     });
 
     it("Should get deals by relay", async function () {
-      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30);
+      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, 0);
 
       const deals = await registry.getRelayDeals(relay1.address);
       expect(deals.length).to.equal(1);
@@ -224,7 +266,7 @@ describe("ShogunRelayRegistry", function () {
     });
 
     it("Should get deals by client", async function () {
-      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30);
+      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, 0);
 
       const deals = await registry.getClientDeals(client.address);
       expect(deals.length).to.equal(1);
@@ -232,84 +274,215 @@ describe("ShogunRelayRegistry", function () {
     });
 
     it("Should complete a deal", async function () {
-      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30);
+      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, 0);
       await registry.connect(relay1).completeDeal(dealId);
 
       const deal = await registry.deals(dealId);
       expect(deal.active).to.be.false;
     });
+
+    it("Should add client stake to existing deal", async function () {
+      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, 0);
+      
+      const additionalStake = ethers.parseUnits("5", 6);
+      await registry.connect(client).addClientStake(dealId, additionalStake);
+
+      const deal = await registry.deals(dealId);
+      expect(deal.clientStake).to.equal(additionalStake);
+    });
+
+    it("Should withdraw client stake after deal completion", async function () {
+      const clientStake = ethers.parseUnits("10", 6);
+      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, clientStake);
+      
+      // Complete the deal
+      await registry.connect(relay1).completeDeal(dealId);
+      
+      const clientBalanceBefore = await mockUSDC.balanceOf(client.address);
+      await registry.connect(client).withdrawClientStake(dealId);
+      const clientBalanceAfter = await mockUSDC.balanceOf(client.address);
+
+      expect(clientBalanceAfter - clientBalanceBefore).to.equal(clientStake);
+      
+      const deal = await registry.deals(dealId);
+      expect(deal.clientStake).to.equal(0);
+    });
+
+    it("Should fail to withdraw client stake if deal still active", async function () {
+      const clientStake = ethers.parseUnits("10", 6);
+      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, clientStake);
+      
+      await expect(
+        registry.connect(client).withdrawClientStake(dealId)
+      ).to.be.revertedWithCustomError(registry, "ClientStakeStillLocked");
+    });
   });
 
-  describe("Slashing", function () {
+  describe("Griefing (Decentralized Slashing)", function () {
     const dealId = ethers.id("deal-001");
 
     beforeEach(async function () {
-      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE);
-      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30);
-      
-      // Authorize slasher
-      await registry.connect(owner).setAuthorizedSlasher(slasher.address, true);
+      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey", MIN_STAKE, 0);
+      await registry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, 0);
     });
 
-    it("Should slash for missed proof", async function () {
+    it("Should grief relay for missed proof", async function () {
       const stakeBeforeSlash = (await registry.getRelayInfo(relay1.address)).stakedAmount;
+      const slashAmount = stakeBeforeSlash * 100n / 10000n; // 1%
+      const expectedCost = slashAmount * 500n / 10000n; // 5% of slash amount (default ratio)
       
-      await registry.connect(slasher).reportMissedProof(
+      const clientBalanceBefore = await mockUSDC.balanceOf(client.address);
+      const treasuryBalanceBefore = await mockUSDC.balanceOf(owner.address);
+      
+      await registry.connect(client).griefMissedProof(
         relay1.address,
-        ethers.ZeroHash,
+        dealId,
         "Failed to provide proof within timeout"
       );
 
       const stakeAfterSlash = (await registry.getRelayInfo(relay1.address)).stakedAmount;
-      const slashAmount = stakeBeforeSlash * 100n / 10000n; // 1%
-      
       expect(stakeAfterSlash).to.equal(stakeBeforeSlash - slashAmount);
+      
+      // Verify client paid the cost
+      const clientBalanceAfter = await mockUSDC.balanceOf(client.address);
+      expect(clientBalanceBefore - clientBalanceAfter).to.equal(expectedCost);
+      
+      // Verify treasury received both slash and cost
+      const treasuryBalanceAfter = await mockUSDC.balanceOf(owner.address);
+      expect(treasuryBalanceAfter - treasuryBalanceBefore).to.equal(slashAmount + expectedCost);
     });
 
-    it("Should slash for data loss", async function () {
+    it("Should grief relay for data loss", async function () {
       const stakeBeforeSlash = (await registry.getRelayInfo(relay1.address)).stakedAmount;
+      const slashAmount = stakeBeforeSlash * 1000n / 10000n; // 10%
+      const expectedCost = slashAmount * 500n / 10000n; // 5% of slash amount
       
-      await registry.connect(slasher).reportDataLoss(
+      await registry.connect(client).griefDataLoss(
         relay1.address,
         dealId,
         "Data unavailable for active deal"
       );
 
       const stakeAfterSlash = (await registry.getRelayInfo(relay1.address)).stakedAmount;
-      const slashAmount = stakeBeforeSlash * 1000n / 10000n; // 10%
-      
       expect(stakeAfterSlash).to.equal(stakeBeforeSlash - slashAmount);
     });
 
-    it("Should fail if not authorized slasher", async function () {
+    it("Should use better griefing ratio for staked clients", async function () {
+      // Create a new deal with client stake
+      const stakedDealId = ethers.id("deal-staked");
+      const clientStake = ethers.parseUnits("50", 6);
+      await registry.connect(relay1).registerDeal(stakedDealId, client.address, "QmCid", 100, 1000000, 30, clientStake);
+      
+      const stakeBeforeSlash = (await registry.getRelayInfo(relay1.address)).stakedAmount;
+      const slashAmount = stakeBeforeSlash * 100n / 10000n; // 1%
+      const expectedCost = slashAmount * 100n / 10000n; // 1% of slash amount (staked client ratio)
+      
+      const clientBalanceBefore = await mockUSDC.balanceOf(client.address);
+      
+      await registry.connect(client).griefMissedProof(
+        relay1.address,
+        stakedDealId,
+        "Failed to provide proof"
+      );
+
+      const clientBalanceAfter = await mockUSDC.balanceOf(client.address);
+      expect(clientBalanceBefore - clientBalanceAfter).to.equal(expectedCost);
+    });
+
+    it("Should fail if not deal client", async function () {
       await expect(
-        registry.connect(client).reportMissedProof(relay1.address, ethers.ZeroHash, "reason")
-      ).to.be.revertedWithCustomError(registry, "NotAuthorizedSlasher");
+        registry.connect(slasher).griefMissedProof(relay1.address, dealId, "reason")
+      ).to.be.revertedWithCustomError(registry, "NotDealParty");
+    });
+
+    it("Should fail if deal not active", async function () {
+      await registry.connect(relay1).completeDeal(dealId);
+      
+      await expect(
+        registry.connect(client).griefMissedProof(relay1.address, dealId, "reason")
+      ).to.be.revertedWithCustomError(registry, "DealNotActive");
+    });
+
+    it("Should calculate griefing cost correctly", async function () {
+      const [slashAmount, cost] = await registry.calculateGriefingCost(
+        relay1.address,
+        100, // 1% slash
+        dealId
+      );
+      
+      const stake = (await registry.getRelayInfo(relay1.address)).stakedAmount;
+      const expectedSlash = stake * 100n / 10000n;
+      const expectedCost = expectedSlash * 500n / 10000n; // Default ratio
+      
+      expect(slashAmount).to.equal(expectedSlash);
+      expect(cost).to.equal(expectedCost);
     });
 
     it("Should deactivate relay if stake falls below minimum", async function () {
-      // Slash multiple times to bring below minimum
-      for (let i = 0; i < 15; i++) {
-        const info = await registry.getRelayInfo(relay1.address);
-        if (info.status === 3n) break; // Already slashed
-        await registry.connect(slasher).reportMissedProof(relay1.address, ethers.ZeroHash, "reason");
+      // Start with exactly 2x minimum stake to make calculation easier
+      // First register with minimum, then increase to 2x
+      await registry.connect(relay1).increaseStake(MIN_STAKE);
+      
+      let info = await registry.getRelayInfo(relay1.address);
+      const initialStake = info.stakedAmount; // Should be 200 USDC
+      expect(info.status).to.equal(1); // Active
+      expect(initialStake).to.equal(MIN_STAKE * 2n);
+      
+      // Use dataLoss (10% slash) instead of missedProof (1%) to reach below minimum faster
+      // With 200 USDC and 10% slash: 200 - 20 = 180, then 180 - 18 = 162, etc.
+      // After 5 slashes: ~118 USDC, after 6: ~106, after 7: ~95 (below 100)
+      
+      // Slash enough times to bring below minimum using dataLoss (10% per slash)
+      for (let i = 0; i < 10; i++) {
+        info = await registry.getRelayInfo(relay1.address);
+        
+        // Check if already slashed
+        if (info.status === 3n) {
+          expect(info.stakedAmount).to.be.lt(MIN_STAKE);
+          return; // Test passed
+        }
+        
+        // Check if stake is already below minimum (should trigger slashing)
+        if (info.stakedAmount < MIN_STAKE) {
+          // Should have been slashed in previous iteration
+          // Create one more deal and grief to trigger the status change
+          const finalDealId = ethers.id(`deal-final-${i}`);
+          await registry.connect(relay1).registerDeal(finalDealId, client.address, "QmCid", 100, 1000000, 30, 0);
+          await registry.connect(client).griefDataLoss(relay1.address, finalDealId, "reason");
+          break;
+        }
+        
+        // Create new deal for each grief
+        const newDealId = ethers.id(`deal-min-test-${i}`);
+        await registry.connect(relay1).registerDeal(newDealId, client.address, "QmCid", 100, 1000000, 30, 0);
+        await registry.connect(client).griefDataLoss(relay1.address, newDealId, "reason");
       }
 
-      const info = await registry.getRelayInfo(relay1.address);
+      info = await registry.getRelayInfo(relay1.address);
       expect(info.status).to.equal(3); // Slashed
+      expect(info.stakedAmount).to.be.lt(MIN_STAKE);
     });
 
-    it("Should emit RelaySlashed event", async function () {
+    it("Should emit RelaySlashed event with cost", async function () {
       await expect(
-        registry.connect(slasher).reportMissedProof(relay1.address, ethers.ZeroHash, "test reason")
-      ).to.emit(registry, "RelaySlashed");
+        registry.connect(client).griefMissedProof(relay1.address, dealId, "test reason")
+      )
+        .to.emit(registry, "RelaySlashed")
+        .withArgs(
+          (reportId: string) => reportId.length > 0,
+          relay1.address,
+          client.address,
+          (amount: bigint) => amount > 0n,
+          (cost: bigint) => cost > 0n,
+          "test reason"
+        );
     });
   });
 
   describe("Discovery", function () {
     beforeEach(async function () {
-      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey1", MIN_STAKE);
-      await registry.connect(relay2).registerRelay("https://relay2.example.com", "pubkey2", MIN_STAKE);
+      await registry.connect(relay1).registerRelay("https://relay1.example.com", "pubkey1", MIN_STAKE, 0);
+      await registry.connect(relay2).registerRelay("https://relay2.example.com", "pubkey2", MIN_STAKE, 0);
     });
 
     it("Should return correct active relay count", async function () {
@@ -349,16 +522,28 @@ describe("ShogunRelayRegistry", function () {
       expect(await registry.dataLossSlashBps()).to.equal(2000);
     });
 
+    it("Should set griefing ratios", async function () {
+      await registry.connect(owner).setGriefingRatios(600, 150); // 6% default, 1.5% staked
+      expect(await registry.defaultGriefingRatio()).to.equal(600);
+      expect(await registry.stakedClientGriefingRatio()).to.equal(150);
+    });
+
+    it("Should set treasury address", async function () {
+      const newTreasury = client.address;
+      await registry.connect(owner).setTreasury(newTreasury);
+      expect(await registry.treasury()).to.equal(newTreasury);
+    });
+
     it("Should pause and unpause", async function () {
       await registry.connect(owner).pause();
       
       await expect(
-        registry.connect(relay1).registerRelay("https://relay.com", "pubkey", MIN_STAKE)
+        registry.connect(relay1).registerRelay("https://relay.com", "pubkey", MIN_STAKE, 0)
       ).to.be.revertedWithCustomError(registry, "EnforcedPause");
 
       await registry.connect(owner).unpause();
       
-      await registry.connect(relay1).registerRelay("https://relay.com", "pubkey", MIN_STAKE);
+      await registry.connect(relay1).registerRelay("https://relay.com", "pubkey", MIN_STAKE, 0);
       expect(await registry.isActiveRelay(relay1.address)).to.be.true;
     });
 
