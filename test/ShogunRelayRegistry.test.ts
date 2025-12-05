@@ -65,8 +65,8 @@ describe("ShogunRelayRegistry", function () {
       const info = await registry.getRelayInfo(relay1.address);
       expect(info.owner).to.equal(relay1.address);
       expect(info.endpoint).to.equal("https://relay1.example.com");
-      expect(info.pubkey).to.deep.equal(PUBKEY);
-      expect(info.epub).to.deep.equal(EPUB);
+      expect(ethers.hexlify(info.pubkey)).to.equal(ethers.hexlify(PUBKEY));
+      expect(ethers.hexlify(info.epub)).to.equal(ethers.hexlify(EPUB));
       expect(info.stakedAmount).to.equal(MIN_STAKE);
       expect(info.status).to.equal(1); // Active (ParticipantStatus.Active)
     });
@@ -144,8 +144,8 @@ describe("ShogunRelayRegistry", function () {
       await registry.connect(relay1).updateRelayEncryptionKeys(newPubkey, newEpub);
       
       const info = await registry.getRelayInfo(relay1.address);
-      expect(info.pubkey).to.deep.equal(newPubkey);
-      expect(info.epub).to.deep.equal(newEpub);
+      expect(ethers.hexlify(info.pubkey)).to.equal(ethers.hexlify(newPubkey));
+      expect(ethers.hexlify(info.epub)).to.equal(ethers.hexlify(newEpub));
     });
 
     it("Should fail if not active", async function () {
@@ -350,8 +350,8 @@ describe("ShogunRelayRegistry", function () {
       const info = await registry.getUserInfo(user1.address);
       expect(info.owner).to.equal(user1.address);
       expect(info.endpoint).to.equal(""); // Users have no endpoint
-      expect(info.pubkey).to.deep.equal(PUBKEY);
-      expect(info.epub).to.deep.equal(EPUB);
+      expect(ethers.hexlify(info.pubkey)).to.equal(ethers.hexlify(PUBKEY));
+      expect(ethers.hexlify(info.epub)).to.equal(ethers.hexlify(EPUB));
       expect(info.status).to.equal(1); // Active
       expect(info.stakedAmount).to.equal(0); // No stake by default
     });

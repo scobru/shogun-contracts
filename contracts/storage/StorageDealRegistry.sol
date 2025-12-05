@@ -234,7 +234,7 @@ contract StorageDealRegistry is Ownable, ReentrancyGuard, Pausable {
      * @param _dealId Related deal ID (must be active deal with this client)
      * @param _slashAmount Amount to slash from relay stake (in USDC atomic units)
      * @param _reason Reason for griefing
-     * @dev Calculates griefing ratio based on client stake and delegates to registry.grief()
+     * @dev Calculates griefing ratio based on client stake, transfers cost from client, then delegates to registry.grief()
      */
     function grief(
         bytes32 _dealId,
@@ -251,7 +251,15 @@ contract StorageDealRegistry is Ownable, ReentrancyGuard, Pausable {
             ? registry.stakedClientGriefingRatio() 
             : registry.defaultGriefingRatio();
 
-        // Delegate to registry for griefing (which handles slashing, cost, etc.)
+        // Calculate griefing cost
+        uint256 cost = (_slashAmount * griefingRatio) / 10000;
+        
+        // Transfer cost from client to this contract (dealRegistry will pay when calling registry.grief)
+        if (cost > 0) {
+            stakingToken.safeTransferFrom(msg.sender, address(this), cost);
+        }
+
+        // Delegate to registry for griefing (dealRegistry will pay the cost as msg.sender)
         registry.grief(deal.relay, _slashAmount, _reason, griefingRatio, _dealId);
     }
 

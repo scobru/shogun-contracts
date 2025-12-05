@@ -279,8 +279,8 @@ describe("StorageDealRegistry", function () {
       dealId = ethers.id("deal-grief-test");
       await dealRegistry.connect(relay1).registerDeal(dealId, client.address, "QmCid", 100, 1000000, 30, 0);
       
-      // Approve for griefing costs
-      await mockUSDC.connect(client).approve(await relayRegistry.getAddress(), ethers.MaxUint256);
+      // Approve for griefing costs (dealRegistry will transfer from client)
+      await mockUSDC.connect(client).approve(await dealRegistry.getAddress(), ethers.MaxUint256);
     });
 
     it("Should grief relay for storage deal (without client stake)", async function () {
