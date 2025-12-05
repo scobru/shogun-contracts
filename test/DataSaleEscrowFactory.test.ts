@@ -66,7 +66,7 @@ describe("DataSaleEscrowFactory", function () {
       CATEGORY,
       PRICE
     );
-    postId = await getPostIdFromEvent(tx);
+    postId = await getPostIdFromEvent(tx, postRegistry);
   });
 
   describe("Factory Creation", function () {
@@ -160,7 +160,7 @@ describe("DataSaleEscrowFactory", function () {
         CATEGORY,
         ethers.parseUnits("20", 6)
       );
-      const postId2 = await getPostIdFromEvent(tx2);
+      const postId2 = await getPostIdFromEvent(tx2, postRegistry);
 
       const tx3 = await factory.connect(buyer2).createEscrow(postId2, seller.address, COUNTDOWN_DURATION);
       escrow2Address = await getEscrowAddressFromEvent(tx3);
@@ -208,7 +208,7 @@ describe("DataSaleEscrowFactory", function () {
         CATEGORY,
         ethers.parseUnits("15", 6)
       );
-      const postId3 = await getPostIdFromEvent(tx3);
+      const postId3 = await getPostIdFromEvent(tx3, postRegistry);
       await factory.connect(buyer1).createEscrow(postId3, seller.address, COUNTDOWN_DURATION);
 
       count = await factory.getEscrowCount();
@@ -226,7 +226,7 @@ describe("DataSaleEscrowFactory", function () {
         CATEGORY,
         PRICE
       );
-      const postId1 = await getPostIdFromEvent(tx1);
+      const postId1 = await getPostIdFromEvent(tx1, postRegistry);
 
       const tx2 = await postRegistry.connect(seller).publishPost(
         PROOF_HASH,
@@ -235,7 +235,7 @@ describe("DataSaleEscrowFactory", function () {
         CATEGORY,
         ethers.parseUnits("20", 6)
       );
-      const postId2 = await getPostIdFromEvent(tx2);
+      const postId2 = await getPostIdFromEvent(tx2, postRegistry);
 
       // Create escrows for each
       await factory.connect(buyer1).createEscrow(postId1, seller.address, COUNTDOWN_DURATION);
@@ -253,19 +253,29 @@ describe("DataSaleEscrowFactory", function () {
   });
 
   // Helper functions
-  async function getPostIdFromEvent(tx: any): Promise<string> {
+  async function getPostIdFromEvent(tx: any, registry: DataPostRegistry): Promise<string> {
     const receipt = await tx.wait();
-    const eventSig = ethers.id("DataPostPublished(bytes32,address,bytes32,string,string,uint256)");
-    const event = receipt.logs.find(
-      (log: any) => log.topics[0] === eventSig
-    );
+    if (!receipt) {
+      throw new Error("Transaction receipt not found");
+    }
     
-    if (!event) {
+    // Parse events from the contract
+    const events = receipt.logs
+      .map((log: any) => {
+        try {
+          return registry.interface.parseLog(log);
+        } catch {
+          return null;
+        }
+      })
+      .filter((parsed: any) => parsed !== null && parsed.name === "DataPostPublished");
+    
+    if (events.length === 0) {
       throw new Error("DataPostPublished event not found");
     }
     
-    // postId is the first indexed parameter (bytes32), so it's in topics[1]
-    return ethers.hexlify(event.topics[1]);
+    const event = events[0];
+    return event.args.postId;
   }
 
   async function getEscrowAddressFromEvent(tx: any): Promise<string> {

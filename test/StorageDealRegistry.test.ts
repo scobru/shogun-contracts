@@ -84,11 +84,13 @@ describe("StorageDealRegistry", function () {
       expect(deal.sizeMB).to.equal(100);
       expect(deal.active).to.be.true;
       expect(deal.clientStake).to.equal(0);
+      expect(deal.griefed).to.be.false; // Deal should not be griefed initially
     });
 
     it("Should register a storage deal with client stake", async function () {
       const dealId = ethers.id("deal-002");
       const clientStake = ethers.parseUnits("10", 6); // 10 USDC
+      const dealPrice = ethers.parseUnits("1", 6); // 1 USDC
       const clientBalanceBefore = await mockUSDC.balanceOf(client.address);
       
       await dealRegistry.connect(relay1).registerDeal(
@@ -96,7 +98,7 @@ describe("StorageDealRegistry", function () {
         client.address,
         "QmTestCid123",
         100,
-        ethers.parseUnits("1", 6),
+        dealPrice,
         30,
         clientStake
       );
@@ -105,7 +107,8 @@ describe("StorageDealRegistry", function () {
       expect(deal.clientStake).to.equal(clientStake);
       
       const clientBalanceAfter = await mockUSDC.balanceOf(client.address);
-      expect(clientBalanceBefore - clientBalanceAfter).to.equal(clientStake);
+      // Client pays: dealPrice (to relay) + clientStake (to contract)
+      expect(clientBalanceBefore - clientBalanceAfter).to.equal(clientStake + dealPrice);
     });
 
     it("Should fail if relay not active", async function () {
@@ -338,6 +341,39 @@ describe("StorageDealRegistry", function () {
       await expect(
         dealRegistry.connect(client).grief(fakeDealId, ethers.parseUnits("10", 6), "reason")
       ).to.be.revertedWithCustomError(dealRegistry, "DealNotFound");
+    });
+
+    it("Should mark deal as griefed and deactivate after griefing", async function () {
+      const dealBefore = await dealRegistry.deals(dealId);
+      expect(dealBefore.active).to.be.true;
+      expect(dealBefore.griefed).to.be.false;
+
+      await dealRegistry.connect(client).grief(dealId, ethers.parseUnits("10", 6), "Test reason");
+
+      const dealAfter = await dealRegistry.deals(dealId);
+      expect(dealAfter.active).to.be.false; // Deal should be deactivated
+      expect(dealAfter.griefed).to.be.true; // Deal should be marked as griefed
+    });
+
+    it("Should prevent multiple griefing for the same deal", async function () {
+      const slashAmount = ethers.parseUnits("10", 6);
+      
+      // First griefing should succeed
+      await dealRegistry.connect(client).grief(dealId, slashAmount, "First grief");
+
+      // Second griefing should fail
+      await expect(
+        dealRegistry.connect(client).grief(dealId, ethers.parseUnits("5", 6), "Second grief")
+      ).to.be.revertedWithCustomError(dealRegistry, "DealAlreadyGriefed");
+    });
+
+    it("Should fail to grief if deal already griefed", async function () {
+      await dealRegistry.connect(client).grief(dealId, ethers.parseUnits("10", 6), "First grief");
+      
+      // Try to grief again - should fail
+      await expect(
+        dealRegistry.connect(client).grief(dealId, ethers.parseUnits("5", 6), "Second attempt")
+      ).to.be.revertedWithCustomError(dealRegistry, "DealAlreadyGriefed");
     });
   });
 

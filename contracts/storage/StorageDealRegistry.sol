@@ -36,6 +36,7 @@ contract StorageDealRegistry is Ownable, ReentrancyGuard, Pausable {
         uint256 expiresAt;          // Expiration timestamp
         bool active;                // Whether deal is active
         uint256 clientStake;        // Optional client stake for better griefing ratio
+        bool griefed;               // Whether this deal has been griefed (prevents multiple griefing)
     }
 
     // =========================================== State ===========================================
@@ -94,6 +95,7 @@ contract StorageDealRegistry is Ownable, ReentrancyGuard, Pausable {
     error DealAlreadyExists();
     error NotDealParty();
     error DealNotActive();
+    error DealAlreadyGriefed();
     error ClientStakeStillLocked();
     error InvalidAmount();
     error RelayNotActive();
@@ -137,7 +139,12 @@ contract StorageDealRegistry is Ownable, ReentrancyGuard, Pausable {
 
         uint256 expiresAt = block.timestamp + (_durationDays * 1 days);
 
-        // If client wants to stake, transfer it
+        // Transfer payment from client to relay
+        if (_priceUSDC > 0) {
+            stakingToken.safeTransferFrom(_client, msg.sender, _priceUSDC);
+        }
+
+        // If client wants to stake, transfer it to contract
         if (_clientStake > 0) {
             stakingToken.safeTransferFrom(_client, address(this), _clientStake);
         }
@@ -152,7 +159,8 @@ contract StorageDealRegistry is Ownable, ReentrancyGuard, Pausable {
             createdAt: block.timestamp,
             expiresAt: expiresAt,
             active: true,
-            clientStake: _clientStake
+            clientStake: _clientStake,
+            griefed: false
         });
 
         dealsByRelay[msg.sender].push(_dealId);
@@ -244,6 +252,7 @@ contract StorageDealRegistry is Ownable, ReentrancyGuard, Pausable {
         StorageDeal storage deal = deals[_dealId];
         if (deal.createdAt == 0) revert DealNotFound();
         if (deal.client != msg.sender) revert NotDealParty();
+        if (deal.griefed) revert DealAlreadyGriefed(); // Prevent multiple griefing for same deal - check before active
         if (!deal.active) revert DealNotActive();
 
         // Calculate griefing ratio based on client stake
@@ -254,13 +263,27 @@ contract StorageDealRegistry is Ownable, ReentrancyGuard, Pausable {
         // Calculate griefing cost
         uint256 cost = (_slashAmount * griefingRatio) / 10000;
         
-        // Transfer cost from client to this contract (dealRegistry will pay when calling registry.grief)
+        // Transfer cost from client to this contract (dealRegistry)
         if (cost > 0) {
             stakingToken.safeTransferFrom(msg.sender, address(this), cost);
+            // Reset approval to 0 first (required for some tokens)
+            stakingToken.approve(address(registry), 0);
+            // Approve registry to spend the cost from dealRegistry
+            stakingToken.approve(address(registry), cost);
         }
 
-        // Delegate to registry for griefing (dealRegistry will pay the cost as msg.sender)
+        // Delegate to registry for griefing (registry will transfer cost from dealRegistry)
         registry.grief(deal.relay, _slashAmount, _reason, griefingRatio, _dealId);
+        
+        // Mark deal as griefed to prevent multiple griefing
+        deal.griefed = true;
+        // Deactivate deal after griefing (relay failed to provide service)
+        deal.active = false;
+        
+        // Clear approval
+        if (cost > 0) {
+            stakingToken.approve(address(registry), 0);
+        }
     }
 
     // ========================================== Discovery =========================================

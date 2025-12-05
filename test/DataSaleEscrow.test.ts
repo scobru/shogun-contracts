@@ -59,7 +59,7 @@ describe("DataSaleEscrow", function () {
       CATEGORY,
       PRICE
     );
-    postId = await getPostIdFromEvent(tx);
+    postId = await getPostIdFromEvent(tx, postRegistry);
 
     // Deploy escrow
     const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
@@ -211,7 +211,7 @@ describe("DataSaleEscrow", function () {
         CATEGORY,
         PRICE
       );
-      const newPostId = await getPostIdFromEvent(tx);
+      const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
       const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
       const newEscrow = await NewEscrow.deploy(
@@ -268,7 +268,7 @@ describe("DataSaleEscrow", function () {
         CATEGORY,
         PRICE
       );
-      const newPostId = await getPostIdFromEvent(tx);
+      const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
       const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
       const newEscrow = await NewEscrow.deploy(
@@ -278,6 +278,7 @@ describe("DataSaleEscrow", function () {
       );
       await newEscrow.waitForDeployment();
       await newEscrow.initialize(newPostId, seller.address, buyer.address, COUNTDOWN_DURATION);
+      await mockUSDC.connect(buyer).approve(await newEscrow.getAddress(), ethers.MaxUint256);
       await newEscrow.connect(buyer).depositPayment();
 
       await expect(
@@ -317,7 +318,7 @@ describe("DataSaleEscrow", function () {
 
       await expect(
         escrow.connect(buyer).cancel()
-      ).to.be.revertedWithCustomError(escrow, "EscrowNotPending");
+      ).to.be.revertedWithCustomError(escrow, "EscrowNotActive");
     });
   });
 
@@ -404,7 +405,7 @@ describe("DataSaleEscrow", function () {
         CATEGORY,
         PRICE
       );
-      relayPostId = await getPostIdFromEvent(tx);
+      relayPostId = await getPostIdFromEvent(tx, postRegistry);
 
       // Deploy and initialize escrow with relay seller
       const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
@@ -459,7 +460,7 @@ describe("DataSaleEscrow", function () {
         CATEGORY,
         PRICE
       );
-      const testPostId = await getPostIdFromEvent(tx);
+      const testPostId = await getPostIdFromEvent(tx, postRegistry);
 
       // Create new escrow
       const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
@@ -470,6 +471,9 @@ describe("DataSaleEscrow", function () {
       );
       await testEscrow.waitForDeployment();
       await testEscrow.initialize(testPostId, relaySeller.address, buyer.address, COUNTDOWN_DURATION);
+      
+      // Approve escrow to spend USDC
+      await mockUSDC.connect(buyer).approve(await testEscrow.getAddress(), ethers.MaxUint256);
       
       // Deposit payment
       await testEscrow.connect(buyer).depositPayment();
@@ -523,7 +527,7 @@ describe("DataSaleEscrow", function () {
         CATEGORY,
         PRICE
       );
-      userPostId = await getPostIdFromEvent(tx);
+      userPostId = await getPostIdFromEvent(tx, postRegistry);
 
       // Deploy and initialize escrow with user seller
       const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
@@ -535,11 +539,13 @@ describe("DataSaleEscrow", function () {
       await userEscrow.waitForDeployment();
       await userEscrow.initialize(userPostId, userSeller.address, buyer.address, COUNTDOWN_DURATION);
 
-      // Mint and approve USDC for buyer
+      // Mint and approve USDC for buyer (enough for payment + griefing cost)
       await mockUSDC.mint(buyer.address, ethers.parseUnits("1000", 6));
       await mockUSDC.connect(buyer).approve(await userEscrow.getAddress(), ethers.MaxUint256);
       await mockUSDC.connect(buyer).approve(await relayRegistry.getAddress(), ethers.MaxUint256);
       await userEscrow.connect(buyer).depositPayment();
+      
+      // Note: buyerBalanceBefore is after payment deposit, so it's initialBalance - PRICE
     });
 
     it("Should detect user seller (not relay)", async function () {
@@ -562,7 +568,8 @@ describe("DataSaleEscrow", function () {
         userEscrow.connect(buyer).grief(slashAmount, ethers.ZeroHash, "Test griefing user")
       ).to.emit(userEscrow, "EscrowDisputed");
 
-      // Check buyer refunded (minus griefing cost)
+      // Check buyer refunded - buyer gets full refund, then pays griefing cost
+      // So final balance = initial balance - payment + refund - griefing cost = initial balance - griefing cost
       const buyerBalanceAfter = await mockUSDC.balanceOf(buyer.address);
       expect(buyerBalanceAfter - buyerBalanceBefore).to.equal(PRICE - expectedCost);
 
@@ -590,7 +597,7 @@ describe("DataSaleEscrow", function () {
         CATEGORY,
         PRICE
       );
-      const newPostId = await getPostIdFromEvent(tx);
+      const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
       // Create escrow
       const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
@@ -634,9 +641,8 @@ describe("DataSaleEscrow", function () {
       const expired = await escrow.isCountdownExpired();
       expect(expired).to.be.false;
 
-      // Fast forward time
-      const escrowInfo = await escrow.getEscrowInfo();
-      await time.increase(escrowInfo.countdownDuration + 1);
+      // Fast forward time - use COUNTDOWN_DURATION directly (already a number)
+      await time.increase(COUNTDOWN_DURATION + 1);
 
       const expiredAfter = await escrow.isCountdownExpired();
       expect(expiredAfter).to.be.true;
@@ -644,19 +650,29 @@ describe("DataSaleEscrow", function () {
   });
 
   // Helper function
-  async function getPostIdFromEvent(tx: any): Promise<string> {
+  async function getPostIdFromEvent(tx: any, registry: DataPostRegistry): Promise<string> {
     const receipt = await tx.wait();
-    const eventSig = ethers.id("DataPostPublished(bytes32,address,bytes32,string,string,uint256)");
-    const event = receipt.logs.find(
-      (log: any) => log.topics[0] === eventSig
-    );
+    if (!receipt) {
+      throw new Error("Transaction receipt not found");
+    }
     
-    if (!event) {
+    // Parse events from the contract
+    const events = receipt.logs
+      .map((log: any) => {
+        try {
+          return registry.interface.parseLog(log);
+        } catch {
+          return null;
+        }
+      })
+      .filter((parsed: any) => parsed !== null && parsed.name === "DataPostPublished");
+    
+    if (events.length === 0) {
       throw new Error("DataPostPublished event not found");
     }
     
-    // postId is the first indexed parameter (bytes32), so it's in topics[1]
-    return ethers.hexlify(event.topics[1]);
+    const event = events[0];
+    return event.args.postId;
   }
 });
 

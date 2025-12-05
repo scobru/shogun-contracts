@@ -159,7 +159,17 @@ contract DataSaleEscrow is ReentrancyGuard {
 
         // Check if seller is a relay or user (for griefing mechanism)
         sellerIsRelay = registry.isActiveRelay(_seller);
-        sellerIsUser = registry.getUserInfo(_seller).registeredAt > 0;
+        // Only check if user if not already a relay (relays can't be users)
+        if (!sellerIsRelay) {
+            // Try to get user info - if it reverts (user not registered), sellerIsUser stays false
+            try registry.getUserInfo(_seller) returns (ShogunRelayRegistry.ParticipantInfo memory userInfo) {
+                sellerIsUser = userInfo.registeredAt > 0;
+            } catch {
+                sellerIsUser = false;
+            }
+        } else {
+            sellerIsUser = false;
+        }
 
         // Initialize escrow
         escrow = EscrowInfo({
@@ -254,7 +264,24 @@ contract DataSaleEscrow is ReentrancyGuard {
         // Mark escrow as disputed
         escrow.status = EscrowStatus.DISPUTED;
 
-        // Always refund buyer payment
+        // Calculate griefing cost if needed (before refunding)
+        uint256 griefingCost = 0;
+        if (_slashAmount > 0) {
+            if (sellerIsRelay) {
+                uint256 griefingRatio = registry.defaultGriefingRatio();
+                griefingCost = (_slashAmount * griefingRatio) / 10000;
+            } else if (sellerIsUser) {
+                // Get user info to calculate cost
+                try registry.getUserInfo(escrow.seller) returns (ShogunRelayRegistry.ParticipantInfo memory userInfo) {
+                    griefingCost = (_slashAmount * userInfo.griefingRatio) / 10000;
+                } catch {
+                    // User not registered or error - no cost
+                    griefingCost = 0;
+                }
+            }
+        }
+
+        // Refund buyer payment (full amount - buyer will pay griefing cost separately)
         uint256 refundAmount = buyerPayment;
         if (refundAmount > 0) {
             buyerPayment = 0;
@@ -262,24 +289,40 @@ contract DataSaleEscrow is ReentrancyGuard {
         }
 
         // Grief seller if they have stake (relay or user)
-        if (_slashAmount > 0) {
+        // Buyer must pay griefing cost - they need to approve escrow to transfer it
+        if (_slashAmount > 0 && griefingCost > 0) {
+            // Transfer griefing cost from buyer to this contract (will be forwarded to registry)
+            // Buyer must have approved escrow for griefing cost
+            paymentToken.safeTransferFrom(escrow.buyer, address(this), griefingCost);
+            
             if (sellerIsRelay) {
-                // Grief relay via registry (use default griefing ratio, no client stake in data sale)
+                // Grief relay via registry
                 bytes32 dealIdToUse = _dealId == bytes32(0) ? escrow.postId : _dealId;
-                uint256 griefingRatio = registry.defaultGriefingRatio(); // Use default (no client stake for data sales)
+                uint256 griefingRatio = registry.defaultGriefingRatio();
+                
+                // Approve registry to spend griefing cost from escrow
+                paymentToken.approve(address(registry), griefingCost);
                 
                 try registry.grief(escrow.seller, _slashAmount, _reason, griefingRatio, dealIdToUse) {
-                    // Griefing successful - relay stake slashed
+                    // Griefing successful
                 } catch {
-                    // Griefing failed - buyer still refunded
+                    // Griefing failed - refund cost to buyer
+                    paymentToken.safeTransfer(escrow.buyer, griefingCost);
                 }
+                
+                paymentToken.approve(address(registry), 0);
             } else if (sellerIsUser) {
-                // Grief user directly (no deal required, only stake needed)
+                // Grief user directly
+                paymentToken.approve(address(registry), griefingCost);
+                
                 try registry.griefUser(escrow.seller, _slashAmount, _reason) {
-                    // Griefing successful - user stake slashed
+                    // Griefing successful
                 } catch {
-                    // User has no stake or griefing failed - buyer still refunded
+                    // Griefing failed - refund cost to buyer
+                    paymentToken.safeTransfer(escrow.buyer, griefingCost);
                 }
+                
+                paymentToken.approve(address(registry), 0);
             }
         }
 

@@ -36,7 +36,7 @@ describe("DataPostRegistry", function () {
 
       await expect(tx).to.emit(postRegistry, "DataPostPublished");
 
-      const postId = await getPostIdFromEvent(tx);
+      const postId = await getPostIdFromEvent(tx, postRegistry);
       const post = await postRegistry.getPost(postId);
 
       expect(post.seller).to.equal(seller1.address);
@@ -105,7 +105,7 @@ describe("DataPostRegistry", function () {
         PRICE
       );
 
-      const postId = await getPostIdFromEvent(tx);
+      const postId = await getPostIdFromEvent(tx, postRegistry);
       const activePosts = await postRegistry.getActivePosts();
 
       expect(activePosts.length).to.equal(1);
@@ -124,7 +124,7 @@ describe("DataPostRegistry", function () {
         CATEGORY,
         PRICE
       );
-      postId = await getPostIdFromEvent(tx);
+      postId = await getPostIdFromEvent(tx, postRegistry);
     });
 
     it("Should update post description", async function () {
@@ -178,7 +178,7 @@ describe("DataPostRegistry", function () {
         CATEGORY,
         PRICE
       );
-      postId = await getPostIdFromEvent(tx);
+      postId = await getPostIdFromEvent(tx, postRegistry);
     });
 
     it("Should deactivate a post", async function () {
@@ -221,7 +221,7 @@ describe("DataPostRegistry", function () {
         "analytics",
         PRICE
       );
-      postId1 = await getPostIdFromEvent(tx1);
+      postId1 = await getPostIdFromEvent(tx1, postRegistry);
 
       // Seller1 posts another in analytics
       const tx2 = await postRegistry.connect(seller1).publishPost(
@@ -231,7 +231,7 @@ describe("DataPostRegistry", function () {
         "analytics",
         ethers.parseUnits("20", 6)
       );
-      postId2 = await getPostIdFromEvent(tx2);
+      postId2 = await getPostIdFromEvent(tx2, postRegistry);
 
       // Seller2 posts in research
       const tx3 = await postRegistry.connect(seller2).publishPost(
@@ -241,7 +241,7 @@ describe("DataPostRegistry", function () {
         "research",
         ethers.parseUnits("5", 6)
       );
-      postId3 = await getPostIdFromEvent(tx3);
+      postId3 = await getPostIdFromEvent(tx3, postRegistry);
     });
 
     it("Should get posts by seller", async function () {
@@ -327,19 +327,29 @@ describe("DataPostRegistry", function () {
   });
 
   // Helper function to extract postId from event
-  async function getPostIdFromEvent(tx: any): Promise<string> {
+  async function getPostIdFromEvent(tx: any, registry: DataPostRegistry): Promise<string> {
     const receipt = await tx.wait();
-    const eventSig = ethers.id("DataPostPublished(bytes32,address,bytes32,string,string,uint256)");
-    const event = receipt.logs.find(
-      (log: any) => log.topics[0] === eventSig
-    );
+    if (!receipt) {
+      throw new Error("Transaction receipt not found");
+    }
     
-    if (!event) {
+    // Parse events from the contract
+    const events = receipt.logs
+      .map((log: any) => {
+        try {
+          return registry.interface.parseLog(log);
+        } catch {
+          return null;
+        }
+      })
+      .filter((parsed: any) => parsed !== null && parsed.name === "DataPostPublished");
+    
+    if (events.length === 0) {
       throw new Error("DataPostPublished event not found");
     }
     
-    // postId is the first indexed parameter (bytes32), so it's in topics[1]
-    return ethers.hexlify(event.topics[1]);
+    const event = events[0];
+    return event.args.postId;
   }
 });
 
