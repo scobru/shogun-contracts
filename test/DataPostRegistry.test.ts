@@ -20,7 +20,7 @@ describe("DataPostRegistry", function () {
     [owner, seller1, seller2, buyer] = await ethers.getSigners();
 
     const DataPostRegistry = await ethers.getContractFactory("DataPostRegistry");
-    postRegistry = await DataPostRegistry.deploy(owner.address);
+    postRegistry = await DataPostRegistry.deploy();
     await postRegistry.waitForDeployment();
   });
 

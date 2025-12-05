@@ -46,7 +46,7 @@ describe("DataSaleEscrowFactory", function () {
 
     // Deploy DataPostRegistry
     const DataPostRegistry = await ethers.getContractFactory("DataPostRegistry");
-    postRegistry = await DataPostRegistry.deploy(owner.address);
+    postRegistry = await DataPostRegistry.deploy();
     await postRegistry.waitForDeployment();
 
     // Deploy Factory
