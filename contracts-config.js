@@ -4,16 +4,16 @@
  * Centralized configuration file for all contract addresses across networks.
  * This file should be kept in sync with actual deployments.
  * 
- * Last updated: 2025-12-05
+ * Last updated: 2025-01-XX
  */
 
 export const CONTRACTS_CONFIG = {
   baseSepolia: {
     chainId: 84532,
-    relayRegistry: "0xa1970aa00c97B7d87E4bE8516125A2A239F416B2",
-    storageDealRegistry: "0xc9D383bD540Ade3bcfe7868b50aa2D2d21b2C44e",
-    dataPostRegistry: "0xf792bF76212C7aAFDf8A9239d5478Cd03386D24C",
-    dataSaleEscrowFactory: "0xEcC63BE2EA5Fb72Ca63c758bC9Fd41630230b56e",
+    relayRegistry: "0x2E74079a4FaeaF25CC8e73181287c10E66e358dA",
+    storageDealRegistry: "0xAb8F8fEB2E1dF540208d702f0c8A2AD2E6f8AEcd",
+    dataPostRegistry: "0xe2F4515F345Ef5E8E19eB653843f8499f3b55F8a",
+    dataSaleEscrowFactory: "0x050e81d5Aba6EA8e5fB40E4385c692F04D86F889",
     usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     rpc: "https://sepolia.base.org",
     explorer: "https://sepolia.basescan.org"

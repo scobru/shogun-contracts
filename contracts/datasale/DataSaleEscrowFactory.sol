@@ -5,17 +5,28 @@ import "./DataSaleEscrow.sol";
 
 /**
  * @title DataSaleEscrowFactory
- * @notice Factory for creating DataSaleEscrow instances
- * @dev Creates new escrow contracts for each data sale
+ * @notice Factory for creating DataSaleEscrow instances using EIP-1167 Minimal Proxy pattern
+ * @dev Uses cloning to reduce gas costs significantly (from ~500k to ~45k gas per escrow)
+ * 
+ * EIP-1167 Minimal Proxy bytecode:
+ * 0x363d3d373d3d3d363d73<implementation>5af43d82803e903d91602b57fd5bf3
+ * 
+ * Token Support:
+ * - Current: Single payment token (immutable, set at deployment)
+ * - Future: To support new tokens, deploy new factory with new token address
+ * - Alternative: Deploy TokenRegistry and create new factory version that uses it
  */
 contract DataSaleEscrowFactory {
     // =========================================== State ===========================================
 
-    /// @notice Template escrow contract (for reference)
+    /// @notice Implementation contract (used for cloning)
+    address public immutable implementation;
+    
+    /// @notice Template escrow contract (kept for backward compatibility)
     address public immutable template;
 
-    /// @notice All created escrows
-    DataSaleEscrow[] public escrows;
+    /// @notice All created escrows (addresses of minimal proxies)
+    address[] public escrows;
 
     /// @notice Escrows by buyer
     mapping(address => address[]) public escrowsByBuyer;
@@ -39,19 +50,21 @@ contract DataSaleEscrowFactory {
     // ========================================= Constructor ========================================
 
     constructor(address _paymentToken, address _registry, address _postRegistry) {
-        // Deploy template (not used for cloning in this simple version)
-        DataSaleEscrow templateContract = new DataSaleEscrow(_paymentToken, _registry, _postRegistry);
-        template = address(templateContract);
+        // Deploy implementation contract (used for cloning)
+        DataSaleEscrow implContract = new DataSaleEscrow(_paymentToken, _registry, _postRegistry);
+        implementation = address(implContract);
+        template = address(implContract); // Keep for backward compatibility
     }
 
     // =========================================== Functions ========================================
 
     /**
-     * @notice Create a new escrow for a data sale
+     * @notice Create a new escrow for a data sale using EIP-1167 Minimal Proxy
      * @param _postId DataPost ID
      * @param _seller Seller address
      * @param _countdownDuration Countdown duration in seconds (e.g., 7 days = 604800)
-     * @return escrow Address of created escrow
+     * @return escrow Address of created escrow (minimal proxy)
+     * @dev Uses EIP-1167 cloning pattern to reduce gas costs from ~500k to ~45k per escrow
      */
     function createEscrow(
         bytes32 _postId,
@@ -59,25 +72,27 @@ contract DataSaleEscrowFactory {
         uint256 _countdownDuration
     ) external returns (address escrow) {
         // Get post to verify it exists
-        DataPostRegistry postRegistry = DataSaleEscrow(template).postRegistry();
+        DataPostRegistry postRegistry = DataSaleEscrow(implementation).postRegistry();
         DataPostRegistry.DataPost memory post = postRegistry.getPost(_postId);
         
         require(post.createdAt != 0, "Post not found");
         require(post.active, "Post not active");
         require(post.seller == _seller, "Invalid seller");
 
-        // Create new escrow
-        DataSaleEscrow newEscrow = new DataSaleEscrow(
-            address(DataSaleEscrow(template).paymentToken()),
-            address(DataSaleEscrow(template).registry()),
-            address(postRegistry)
-        );
+        // Create minimal proxy using EIP-1167
+        bytes memory bytecode = _generateMinimalProxyBytecode(implementation);
+        bytes32 salt = keccak256(abi.encodePacked(_postId, _seller, msg.sender, block.timestamp));
+        
+        assembly {
+            escrow := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
+        }
+        
+        require(escrow != address(0), "Failed to create proxy");
 
         // Initialize escrow
-        newEscrow.initialize(_postId, _seller, msg.sender, _countdownDuration);
+        DataSaleEscrow(escrow).initialize(_postId, _seller, msg.sender, _countdownDuration);
 
-        escrow = address(newEscrow);
-        escrows.push(newEscrow);
+        escrows.push(escrow);
         escrowsByBuyer[msg.sender].push(escrow);
         escrowsBySeller[_seller].push(escrow);
         escrowsByPost[_postId].push(escrow);
@@ -88,15 +103,27 @@ contract DataSaleEscrowFactory {
     }
 
     /**
+     * @notice Generate EIP-1167 Minimal Proxy bytecode
+     * @param _implementation Address of implementation contract
+     * @return bytecode Complete bytecode for minimal proxy
+     * @dev EIP-1167 format: 0x363d3d373d3d3d363d73<20-byte-address>5af43d82803e903d91602b57fd5bf3
+     */
+    function _generateMinimalProxyBytecode(address _implementation) internal pure returns (bytes memory) {
+        bytes20 implementationBytes = bytes20(_implementation);
+        bytes memory bytecode = abi.encodePacked(
+            hex"3d602d80600a3d3981f3363d3d373d3d3d363d73",
+            implementationBytes,
+            hex"5af43d82803e903d91602b57fd5bf3"
+        );
+        return bytecode;
+    }
+
+    /**
      * @notice Get all escrows
-     * @return Array of escrow addresses
+     * @return Array of escrow addresses (minimal proxy addresses)
      */
     function getAllEscrows() external view returns (address[] memory) {
-        address[] memory addresses = new address[](escrows.length);
-        for (uint256 i = 0; i < escrows.length; i++) {
-            addresses[i] = address(escrows[i]);
-        }
-        return addresses;
+        return escrows;
     }
 
     /**

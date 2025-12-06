@@ -27,7 +27,7 @@ const USDC_ADDRESSES: { [chainId: number]: string } = {
 // Configuration for RelayRegistry
 const MIN_STAKE = ethers.parseUnits("0.01", 6); // 100 USDC (6 decimals)
 const UNSTAKING_DELAY = 7 * 24 * 60 * 60; // 7 days in seconds
-const TREASURY = "0xA6591dCDff5C7616110b4f84207184aef7835048"; // Treasury address (or zero for burn)
+const TREASURY = "0xA6591dCDff5C7616110b4f84207184aef7835048"; // Treasury address (use ethers.ZeroAddress for burn)
 
 interface DeploymentInfo {
   network: string;

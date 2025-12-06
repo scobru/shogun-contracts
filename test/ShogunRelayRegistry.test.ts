@@ -481,6 +481,60 @@ describe("ShogunRelayRegistry", function () {
       expect(await registry.treasury()).to.equal(newTreasury);
     });
 
+    it("Should burn tokens when treasury is zero address (use burn address)", async function () {
+      // Deploy new registry with zero treasury (burn mode)
+      const BurnRegistry = await ethers.getContractFactory("ShogunRelayRegistry");
+      const burnRegistry = await BurnRegistry.deploy(
+        await mockUSDC.getAddress(),
+        MIN_STAKE,
+        UNSTAKING_DELAY,
+        ethers.ZeroAddress // Zero address = burn
+      );
+      await burnRegistry.waitForDeployment();
+
+      // Approve registry to spend USDC for relay registration
+      await mockUSDC.connect(relay1).approve(await burnRegistry.getAddress(), ethers.MaxUint256);
+
+      // Register relay
+      await burnRegistry.connect(relay1).registerRelay(
+        "https://relay1.example.com",
+        PUBKEY,
+        EPUB,
+        MIN_STAKE,
+        0
+      );
+
+      // Mint USDC to slasher for griefing cost
+      await mockUSDC.mint(slasher.address, ethers.parseUnits("100", 6));
+      await mockUSDC.connect(slasher).approve(await burnRegistry.getAddress(), ethers.MaxUint256);
+
+      const slashAmount = ethers.parseUnits("10", 6);
+      const defaultRatio = await burnRegistry.defaultGriefingRatio();
+      const expectedCost = (slashAmount * BigInt(defaultRatio)) / 10000n;
+
+      // Get burn address (0x000000000000000000000000000000000000dEaD)
+      const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
+      const burnBalanceBefore = await mockUSDC.balanceOf(BURN_ADDRESS);
+      const totalSupplyBefore = await mockUSDC.totalSupply();
+
+      // Grief relay (should send to burn address)
+      await burnRegistry.connect(slasher).grief(
+        relay1.address,
+        slashAmount,
+        "Test burn",
+        0,
+        ethers.ZeroHash
+      );
+
+      // Verify tokens were sent to burn address (not address(0))
+      const burnBalanceAfter = await mockUSDC.balanceOf(BURN_ADDRESS);
+      expect(burnBalanceAfter - burnBalanceBefore).to.equal(slashAmount + expectedCost);
+
+      // Verify relay stake was slashed
+      const relayInfo = await burnRegistry.getRelayInfo(relay1.address);
+      expect(relayInfo.stakedAmount).to.equal(MIN_STAKE - slashAmount);
+    });
+
     it("Should pause and unpause", async function () {
       await registry.connect(owner).pause();
       

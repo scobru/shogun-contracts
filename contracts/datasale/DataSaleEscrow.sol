@@ -117,7 +117,8 @@ contract DataSaleEscrow is ReentrancyGuard {
     error InvalidAmount();
     error DataPostNotFound();
     error DataPostNotActive();
-    error CountdownNotExpired();
+    error CountdownNotExpired(); // Legacy error name (kept for compatibility)
+    error CountdownExpired(); // Countdown has expired, seller can no longer submit data
     error InvalidProofHash();
 
     // ========================================= Constructor ========================================
@@ -335,13 +336,17 @@ contract DataSaleEscrow is ReentrancyGuard {
      * @notice Seller submits encrypted symmetric key
      * @param _encryptedSymKeyHash Hash of encrypted symmetric key (IPFS CID or hash)
      * @dev Seller encrypts SymKey with buyer's public key and submits hash
+     *      Seller must submit before countdown expires
      */
     function submitData(
         bytes32 _encryptedSymKeyHash
     ) external {
         if (msg.sender != escrow.seller) revert NotSeller();
         if (escrow.status != EscrowStatus.ACTIVE) revert EscrowNotActive();
-        if (block.timestamp > escrow.countdownEnd) revert CountdownNotExpired();
+        // Seller must submit data BEFORE countdown expires
+        if (escrow.countdownEnd > 0 && block.timestamp > escrow.countdownEnd) {
+            revert CountdownExpired(); // Countdown expired, too late to submit
+        }
 
         escrow.encryptedSymKeyHash = _encryptedSymKeyHash;
         escrow.status = EscrowStatus.DATA_SUBMITTED;

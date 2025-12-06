@@ -18,9 +18,9 @@ const USDC_ADDRESSES: { [chainId: number]: string } = {
 };
 
 // Default configuration
-const DEFAULT_MIN_STAKE = 1_000n; // 0.001 USDC (6 decimals)
+const DEFAULT_MIN_STAKE = 100_000_000n; // 100 USDC (6 decimals) = 100 * 10^6
 const DEFAULT_UNSTAKING_DELAY = 7 * 24 * 60 * 60; // 7 days in seconds
-const DEFAULT_TREASURY = "0xA6591dCDff5C7616110b4f84207184aef7835048"; // Zero address = burn slashed tokens
+const DEFAULT_TREASURY = "0xA6591dCDff5C7616110b4f84207184aef7835048"; // Treasury address (use "0x0000000000000000000000000000000000000000" for burn)
 
 const RelayRegistryModule = buildModule("RelayRegistry", (m) => {
   // Parameters with defaults

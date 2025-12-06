@@ -74,10 +74,17 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
     // =========================================== State ===========================================
 
     /// @notice USDC token contract (Base Sepolia)
+    /// @dev Immutable for security. To support new tokens, deploy new registry version.
+    ///      Future: Can integrate TokenRegistry for multi-token support via upgradeable pattern.
     IERC20 public immutable stakingToken;
 
     /// @notice Minimum stake required to register as a relay
     uint256 public minStake;
+    
+    /// @notice Optional TokenRegistry for future multi-token support
+    /// @dev Can be set by owner to enable multi-token functionality in future versions
+    ///      If set, allows using multiple tokens for staking (requires contract modifications)
+    address public tokenRegistry;
 
     /// @notice Unstaking delay period (seconds)
     uint256 public unstakingDelay;
@@ -112,6 +119,10 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Treasury address (receives slashed amounts, can be zero address for burning)
     address public treasury;
+
+    /// @notice Burn address for tokens (when treasury is zero address)
+    /// @dev Standard Ethereum burn address: 0x000000000000000000000000000000000000dEaD
+    address private constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     // =========================================== Events ==========================================
 
@@ -475,15 +486,12 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
             emit RelayDeactivated(_relay, "Stake below minimum after slash");
         }
 
-        // Transfer slashed amount and cost to treasury (or burn)
-        address recipient = treasury != address(0) ? treasury : address(0);
-        if (recipient != address(0)) {
-            stakingToken.safeTransfer(recipient, _slashAmount);
-            stakingToken.safeTransfer(recipient, cost);
-        } else {
-            stakingToken.safeTransfer(address(0), _slashAmount);
-            stakingToken.safeTransfer(address(0), cost);
-        }
+        // Transfer slashed amount and cost to treasury (or burn address)
+        // Note: USDC doesn't support burn(), so we use a dedicated burn address
+        address recipient = treasury != address(0) ? treasury : BURN_ADDRESS;
+        
+        stakingToken.safeTransfer(recipient, _slashAmount);
+        stakingToken.safeTransfer(recipient, cost);
 
         emit RelaySlashed(reportId, _relay, msg.sender, _slashAmount, cost, _reason);
     }
@@ -695,12 +703,12 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
             timestamp: block.timestamp
         });
 
-        // Transfer slashed amount and cost to treasury (or burn)
-        address recipient = treasury != address(0) ? treasury : address(0);
-        if (recipient != address(0)) {
-            stakingToken.safeTransfer(recipient, _slashAmount);
-            stakingToken.safeTransfer(recipient, cost);
-        }
+        // Transfer slashed amount and cost to treasury (or burn address)
+        // Note: USDC doesn't support burn(), so we use a dedicated burn address
+        address recipient = treasury != address(0) ? treasury : BURN_ADDRESS;
+        
+        stakingToken.safeTransfer(recipient, _slashAmount);
+        stakingToken.safeTransfer(recipient, cost);
 
         emit UserSlashed(reportId, _user, msg.sender, _slashAmount, cost, _reason);
     }
@@ -796,6 +804,18 @@ contract ShogunRelayRegistry is Ownable, ReentrancyGuard, Pausable {
      */
     function setTreasury(address _treasury) external onlyOwner {
         treasury = _treasury;
+    }
+
+    /**
+     * @notice Set TokenRegistry address for future multi-token support
+     * @param _tokenRegistry Address of TokenRegistry contract (can be zero to disable)
+     * @dev This allows future integration with TokenRegistry for multi-token support
+     *      Current implementation still uses immutable stakingToken, but this field
+     *      can be used by upgraded contracts or new versions
+     */
+    function setTokenRegistry(address _tokenRegistry) external onlyOwner {
+        tokenRegistry = _tokenRegistry;
+        // Future: emit event when TokenRegistry integration is implemented
     }
 
     /**

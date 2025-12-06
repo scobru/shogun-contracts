@@ -80,7 +80,7 @@ async function main() {
   };
 
   // Step 1: Deploy ShogunRelayRegistry
-  console.log("\n[1/4] Deploying ShogunRelayRegistry...");
+  console.log("\n[1/7] Deploying ShogunRelayRegistry...");
   const ShogunRelayRegistry = await ethers.getContractFactory("ShogunRelayRegistry");
   const relayRegistry = await ShogunRelayRegistry.deploy(
     usdcAddress,
@@ -94,7 +94,7 @@ async function main() {
   console.log(`✅ ShogunRelayRegistry deployed to: ${relayRegistryAddress}`);
 
   // Step 2: Deploy DataPostRegistry
-  console.log("\n[2/4] Deploying DataPostRegistry...");
+  console.log("\n[2/7] Deploying DataPostRegistry...");
   const DataPostRegistry = await ethers.getContractFactory("DataPostRegistry");
   const dataPostRegistry = await DataPostRegistry.deploy();
   await dataPostRegistry.waitForDeployment();
@@ -103,7 +103,7 @@ async function main() {
   console.log(`✅ DataPostRegistry deployed to: ${dataPostRegistryAddress}`);
 
   // Step 3: Deploy DataSaleEscrowFactory
-  console.log("\n[3/4] Deploying DataSaleEscrowFactory...");
+  console.log("\n[3/7] Deploying DataSaleEscrowFactory...");
   const DataSaleEscrowFactory = await ethers.getContractFactory("DataSaleEscrowFactory");
   const dataSaleEscrowFactory = await DataSaleEscrowFactory.deploy(
     usdcAddress,

@@ -226,6 +226,42 @@ describe("DataSaleEscrow", function () {
         newEscrow.connect(seller).submitData(encryptedSymKeyHash)
       ).to.be.revertedWithCustomError(newEscrow, "EscrowNotActive");
     });
+
+    it("Should fail if countdown expired (seller cannot submit after deadline)", async function () {
+      const encryptedSymKeyHash = ethers.id("encrypted-key-123");
+      
+      // Get countdown end time
+      const escrowInfo = await escrow.getEscrowInfo();
+      const countdownEnd = Number(escrowInfo.countdownEnd);
+      
+      // Fast forward time past countdown deadline
+      await time.increase(COUNTDOWN_DURATION + 1);
+      
+      // Verify countdown is expired
+      const isExpired = await escrow.isCountdownExpired();
+      expect(isExpired).to.be.true;
+      
+      // Seller should not be able to submit data after countdown expired
+      await expect(
+        escrow.connect(seller).submitData(encryptedSymKeyHash)
+      ).to.be.revertedWithCustomError(escrow, "CountdownExpired");
+    });
+
+    it("Should allow seller to submit data before countdown expires", async function () {
+      const encryptedSymKeyHash = ethers.id("encrypted-key-123");
+      
+      // Fast forward time but not past deadline (e.g., 1 day before)
+      await time.increase(COUNTDOWN_DURATION - (1 * 24 * 60 * 60));
+      
+      // Verify countdown is not expired
+      const isExpired = await escrow.isCountdownExpired();
+      expect(isExpired).to.be.false;
+      
+      // Seller should be able to submit data before deadline
+      await expect(
+        escrow.connect(seller).submitData(encryptedSymKeyHash)
+      ).to.emit(escrow, "DataSubmitted").withArgs(encryptedSymKeyHash);
+    });
   });
 
   describe("Completion", function () {

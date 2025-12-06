@@ -20,6 +20,7 @@ const USDC_ADDRESSES: { [chainId: number]: string } = {
 // Configuration
 const MIN_STAKE = ethers.parseUnits("100", 6); // 100 USDC (6 decimals)
 const UNSTAKING_DELAY = 7 * 24 * 60 * 60; // 7 days in seconds
+const TREASURY = "0xA6591dCDff5C7616110b4f84207184aef7835048"; // Treasury address (use ethers.ZeroAddress for burn)
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -50,7 +51,8 @@ async function main() {
   const registry = await ShogunRelayRegistry.deploy(
     usdcAddress,
     MIN_STAKE,
-    UNSTAKING_DELAY
+    UNSTAKING_DELAY,
+    TREASURY
   );
 
   await registry.waitForDeployment();
@@ -61,7 +63,7 @@ async function main() {
   // Log verification command
   console.log("\n" + "-".repeat(60));
   console.log("To verify on BaseScan:");
-  console.log(`npx hardhat verify --network ${network.name} ${registryAddress} ${usdcAddress} ${MIN_STAKE.toString()} ${UNSTAKING_DELAY}`);
+  console.log(`npx hardhat verify --network ${network.name} ${registryAddress} ${usdcAddress} ${MIN_STAKE.toString()} ${UNSTAKING_DELAY} ${TREASURY}`);
   
   // Save deployment info
   const deploymentInfo = {
@@ -72,6 +74,7 @@ async function main() {
     stakingToken: usdcAddress,
     minStake: MIN_STAKE.toString(),
     unstakingDelay: UNSTAKING_DELAY,
+    treasury: TREASURY,
     deployedAt: new Date().toISOString(),
     txHash: registry.deploymentTransaction()?.hash,
   };
