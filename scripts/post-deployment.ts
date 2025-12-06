@@ -174,13 +174,11 @@ export type Deployments = typeof DEPLOYMENTS;
   writeFileSync(tsOutputPath, tsContent);
   console.log(`File deployments.ts aggiornato in: ${tsOutputPath}`);
 
-  // Genera anche il file JavaScript
+  // Genera anche il file JavaScript (ES module)
   const jsContent = `// File generato automaticamente da post-deployment.ts
 // Non modificare manualmente
 
-const DEPLOYMENTS = ${JSON.stringify(deploymentsWithNames, null, 2)};
-
-module.exports = { DEPLOYMENTS };
+export const DEPLOYMENTS = ${JSON.stringify(deploymentsWithNames, null, 2)};
 `;
 
   const jsOutputPath = join(__dirname, "..", "deployments.js");
