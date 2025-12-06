@@ -1,5 +1,11 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// Get __dirname equivalent for ES modules
+// @ts-ignore - import.meta is available at runtime in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 interface DeploymentInfo {
   address: string;
@@ -14,11 +20,28 @@ interface DeploymentsFile {
   [chainId: string]: ChainDeployments;
 }
 
-// Mappa degli ID delle chain ai nomi
+// Mappa degli ID delle chain ai nomi per deployments.ts
 const CHAIN_ID_TO_NAME: { [chainId: string]: string } = {
   "11155111": "sepolia",
   "11155420": "optimismSepolia",
   // Aggiungi altre chain qui se necessario
+};
+
+// Mappa degli ID delle chain ai nomi delle network per contracts-config.js
+const CHAIN_ID_TO_NETWORK: { [chainId: string]: string } = {
+  "84532": "baseSepolia",
+  "8453": "base",
+  "11155111": "sepolia",
+  "11155420": "optimismSepolia",
+  // Aggiungi altre chain qui se necessario
+};
+
+// Mappa dei nomi dei contratti deployati ai nomi nel contracts-config.js
+const CONTRACT_NAME_MAP: { [deployedName: string]: string } = {
+  "RelayRegistry#ShogunRelayRegistry": "relayRegistry",
+  "DeployProtocol#StorageDealRegistry": "storageDealRegistry",
+  "DataPostRegistry#DataPostRegistry": "dataPostRegistry",
+  "DeployProtocol#DataSaleEscrowFactory": "dataSaleEscrowFactory",
 };
 
 function loadExistingDeployments(): DeploymentsFile {
@@ -113,6 +136,9 @@ function generateDeploymentsJson(): void {
 
   // Genera anche il file deployments.ts
   generateDeploymentsTs(deployments);
+  
+  // Aggiorna contracts-config.js
+  updateContractsConfig(deployments);
 }
 
 function generateDeploymentsTs(deployments: DeploymentsFile): void {
@@ -164,6 +190,153 @@ module.exports = { DEPLOYMENTS };
   console.log(
     `Chain con nomi: ${Object.keys(deploymentsWithNames).join(", ")}`
   );
+}
+
+interface ContractsConfig {
+  [networkName: string]: {
+    chainId: number;
+    relayRegistry: string | null;
+    storageDealRegistry: string | null;
+    dataPostRegistry: string | null;
+    dataSaleEscrowFactory: string | null;
+    usdc: string;
+    rpc: string;
+    explorer: string;
+  };
+}
+
+function loadExistingContractsConfig(): ContractsConfig | null {
+  const configPath = join(__dirname, "..", "contracts-config.js");
+  if (!existsSync(configPath)) {
+    console.log("File contracts-config.js non trovato");
+    return null;
+  }
+
+  try {
+    const content = readFileSync(configPath, "utf8");
+    
+    // Estrai l'oggetto CONTRACTS_CONFIG usando una regex più robusta
+    const match = content.match(/export const CONTRACTS_CONFIG\s*=\s*({[\s\S]*?});/);
+    if (!match) {
+      console.error("Impossibile trovare CONTRACTS_CONFIG nel file");
+      return null;
+    }
+
+    const configStr = match[1];
+    
+    // Converti l'oggetto JavaScript in JSON valido
+    // Sostituisci le chiavi non quotate con chiavi quotate
+    let jsonStr = configStr
+      .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":') // Aggiungi virgolette alle chiavi
+      .replace(/'([^']*)'/g, '"$1"') // Sostituisci singoli apici con doppi
+      .replace(/null/g, 'null') // Mantieni null
+      .replace(/,\s*}/g, '}') // Rimuovi virgole finali prima di }
+      .replace(/,\s*]/g, ']'); // Rimuovi virgole finali prima di ]
+    
+    // Gestisci i numeri (chainId)
+    jsonStr = jsonStr.replace(/:\s*(\d+)/g, ': $1');
+    
+    const config = JSON.parse(jsonStr);
+    return config as ContractsConfig;
+  } catch (error) {
+    console.error("Errore nel leggere contracts-config.js:", error);
+    // Fallback: prova a importare dinamicamente (solo se siamo in un contesto che lo supporta)
+    try {
+      // Questo approccio funziona solo se il file è un ES module valido
+      // Per ora, restituiamo null e useremo i valori di default
+      console.log("⚠️  Usando approccio fallback per contracts-config.js");
+    } catch (fallbackError) {
+      console.error("Errore anche nel fallback:", fallbackError);
+    }
+  }
+  
+  return null;
+}
+
+function updateContractsConfig(deployments: DeploymentsFile): void {
+  const configPath = join(__dirname, "..", "contracts-config.js");
+  const existingConfig = loadExistingContractsConfig();
+  
+  if (!existingConfig) {
+    console.log("⚠️  Non posso aggiornare contracts-config.js: file non trovato o formato non valido");
+    return;
+  }
+
+  let updated = false;
+  const updatedConfig = { ...existingConfig };
+
+  // Per ogni chain deployata
+  for (const [chainId, chainDeployments] of Object.entries(deployments)) {
+    const networkName = CHAIN_ID_TO_NETWORK[chainId];
+    
+    if (!networkName) {
+      console.log(`⚠️  Network name non trovato per chain ID ${chainId}, salto`);
+      continue;
+    }
+
+    if (!updatedConfig[networkName]) {
+      console.log(`⚠️  Network ${networkName} non trovata in contracts-config.js, salto`);
+      continue;
+    }
+
+    // Aggiorna gli indirizzi dei contratti deployati
+    for (const [contractKey, contractInfo] of Object.entries(chainDeployments)) {
+      const configKey = CONTRACT_NAME_MAP[contractKey];
+      
+      if (configKey && updatedConfig[networkName]) {
+        const networkConfig = updatedConfig[networkName];
+        const oldAddress = (networkConfig as any)[configKey];
+        const newAddress = contractInfo.address;
+        
+        if (oldAddress !== newAddress) {
+          (networkConfig as any)[configKey] = newAddress;
+          console.log(`✅ Aggiornato ${networkName}.${configKey}: ${oldAddress || 'null'} -> ${newAddress}`);
+          updated = true;
+        } else {
+          console.log(`ℹ️  ${networkName}.${configKey} già aggiornato: ${newAddress}`);
+        }
+      } else if (contractKey && !CONTRACT_NAME_MAP[contractKey]) {
+        console.log(`⚠️  Contratto ${contractKey} non mappato in CONTRACT_NAME_MAP`);
+      }
+    }
+  }
+
+  if (!updated) {
+    console.log("ℹ️  Nessun aggiornamento necessario in contracts-config.js");
+    return;
+  }
+
+  // Genera il nuovo contenuto del file
+  // Formatta l'oggetto con indentazione corretta e null come null (non stringa)
+  const configJson = JSON.stringify(updatedConfig, null, 2)
+    .replace(/"/g, '"') // Usa doppi apici
+    .replace(/:\s*null/g, ': null'); // Assicura che null sia scritto correttamente
+  
+  const configContent = `/**
+ * Shogun Protocol Contracts Configuration
+ * 
+ * Centralized configuration file for all contract addresses across networks.
+ * This file should be kept in sync with actual deployments.
+ * 
+ * Last updated: ${new Date().toISOString().split('T')[0]}
+ */
+
+export const CONTRACTS_CONFIG = ${configJson};
+
+// Helper function to get config by chainId
+export function getConfigByChainId(chainId) {
+  const config = Object.values(CONTRACTS_CONFIG).find(c => c.chainId === chainId);
+  return config || null;
+}
+
+// Helper function to get config by network name
+export function getConfigByNetwork(network) {
+  return CONTRACTS_CONFIG[network] || null;
+}
+`;
+
+  writeFileSync(configPath, configContent);
+  console.log(`✅ File contracts-config.js aggiornato in: ${configPath}`);
 }
 
 // Esegui lo script

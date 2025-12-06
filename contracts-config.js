@@ -4,29 +4,29 @@
  * Centralized configuration file for all contract addresses across networks.
  * This file should be kept in sync with actual deployments.
  * 
- * Last updated: 2025-01-XX
+ * Last updated: 2025-12-06
  */
 
 export const CONTRACTS_CONFIG = {
-  baseSepolia: {
-    chainId: 84532,
-    relayRegistry: "0x2E74079a4FaeaF25CC8e73181287c10E66e358dA",
-    storageDealRegistry: "0xAb8F8fEB2E1dF540208d702f0c8A2AD2E6f8AEcd",
-    dataPostRegistry: "0xe2F4515F345Ef5E8E19eB653843f8499f3b55F8a",
-    dataSaleEscrowFactory: "0x050e81d5Aba6EA8e5fB40E4385c692F04D86F889",
-    usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-    rpc: "https://sepolia.base.org",
-    explorer: "https://sepolia.basescan.org"
+  "baseSepolia": {
+    "chainId": 84532,
+    "relayRegistry": "0xf5D5561C84B4Dc8676D4223AF3188d40DA42669B",
+    "storageDealRegistry": "0x25035812952B8a8Ca001B85f4E59919D7569566B",
+    "dataPostRegistry": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
+    "dataSaleEscrowFactory": "0xa9a39816b4c6EF46434892AA49E760dcEBbC8d01",
+    "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "rpc": "https://sepolia.base.org",
+    "explorer": "https://sepolia.basescan.org"
   },
-  base: {
-    chainId: 8453,
-    relayRegistry: null,
-    storageDealRegistry: null,
-    dataPostRegistry: null,
-    dataSaleEscrowFactory: null,
-    usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    rpc: "https://mainnet.base.org",
-    explorer: "https://basescan.org"
+  "base": {
+    "chainId": 8453,
+    "relayRegistry": null,
+    "storageDealRegistry": null,
+    "dataPostRegistry": null,
+    "dataSaleEscrowFactory": null,
+    "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "rpc": "https://mainnet.base.org",
+    "explorer": "https://basescan.org"
   }
 };
 

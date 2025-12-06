@@ -77,11 +77,14 @@ const config: HardhatUserConfig = {
         network: "base",
         chainId: 8453,
         urls: {
-          apiURL: "https://etherscan.io/v2/api?chainid=8453",
+          apiURL: "https://api.etherscan.io/v2/api?chainid=8453",
           browserURL: "https://basescan.org",
         },
       },
     ],
+  },
+  sourcify: {
+    enabled: true,  
   },
 };
 

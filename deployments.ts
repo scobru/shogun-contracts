@@ -4,7 +4,7 @@
 export const DEPLOYMENTS = {
   "84532": {
     "DataPostRegistry#DataPostRegistry": {
-      "address": "0x0390fA966C2b645F6e993afa7F1af3ca1777A245",
+      "address": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
       "abi": [
         {
           "inputs": [],
@@ -613,7 +613,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "RelayRegistry#ShogunRelayRegistry": {
-      "address": "0x39372588ec85A31F3675DFaE39d4d4D7a73eE5F6",
+      "address": "0xf5D5561C84B4Dc8676D4223AF3188d40DA42669B",
       "abi": [
         {
           "inputs": [
@@ -2006,7 +2006,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "DeployProtocol#DataSaleEscrowFactory": {
-      "address": "0xA463FF2CBAbBe8A4c742b2172B301C694fdC6A7F",
+      "address": "0xa9a39816b4c6EF46434892AA49E760dcEBbC8d01",
       "abi": [
         {
           "inputs": [
@@ -2298,7 +2298,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "DeployProtocol#StorageDealRegistry": {
-      "address": "0x07A0F671CfF5590cA0dd50CFC2DbC4f86E5D4380",
+      "address": "0x25035812952B8a8Ca001B85f4E59919D7569566B",
       "abi": [
         {
           "inputs": [
