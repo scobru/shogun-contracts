@@ -1,6 +1,6 @@
 {
   "name": "shogun-contracts",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "main": "index.js",
   "type": "module",
   "exports": {
@@ -9,8 +9,8 @@
     "./deployments": "./deployments.js",
     "./sdk": {
       "types": "./sdk/dist/index.d.ts",
-      "import": "./sdk/dist/index.js",
-      "require": "./sdk/dist/index.js"
+      "import": "./sdk/index.js",
+      "require": "./sdk/index.js"
     }
   },
   "files": [
@@ -18,6 +18,8 @@
     "contracts-config.js",
     "deployments.js",
     "deployments.json",
+    "sdk/index.js",
+    "sdk/package.json",
     "sdk/dist/**/*.js",
     "sdk/dist/**/*.d.ts"
   ],
