@@ -1,0 +1,2 @@
+# Exclude duplicate SDK structure
+dist/sdk/
