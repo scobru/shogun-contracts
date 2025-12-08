@@ -23,7 +23,7 @@ export class ShogunSDK {
    * @param config SDK configuration
    * @example
    * ```typescript
-   * import { ShogunSDK } from '@shogun/contracts/sdk';
+   * import { ShogunSDK } from 'shogun-contracts-sdk';
    * import { JsonRpcProvider } from 'ethers';
    * 
    * const provider = new JsonRpcProvider('https://sepolia.base.org');
@@ -125,4 +125,10 @@ export { getContractDeployment, getAvailableChainIds, isChainSupported } from '.
 
 // Export deployments
 export { DEPLOYMENTS } from './deployments.js';
+
+// Export contracts configuration
+export { CONTRACTS_CONFIG, getConfigByChainId, getConfigByNetwork } from './contracts-config.js';
+
+// Export common ABIs
+export { ERC20_ABI, USDC_EIP3009_ABI } from './abis.js';
 
