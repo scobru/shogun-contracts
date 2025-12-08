@@ -1,0 +1,43 @@
+{
+  "name": "shogun-contracts-sdk",
+  "version": "1.0.0",
+  "description": "Lightweight Shogun SDK - only essential dependencies for using the SDK without hardhat and other heavy packages",
+  "author": "Shogun",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shogun-network/shogun-contracts.git"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "ethers": "^6.4.0"
+  },
+  "devDependencies": {
+    "typescript": ">=4.5.0"
+  },
+  "peerDependencies": {
+    "ethers": "^6.4.0"
+  },
+  "peerDependenciesMeta": {
+    "ethers": {
+      "optional": false
+    }
+  }
+}
