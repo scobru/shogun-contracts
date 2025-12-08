@@ -18,14 +18,17 @@ This directory contains Hardhat Ignition modules for deploying Shogun contracts.
 4. **storageDealRegistry.ts** - Deploys `StorageDealRegistry`
    - Parameters: `registry` (ShogunRelayRegistry address)
 
-5. **deployProtocol.ts** - Orchestrates deployment of core protocol contracts only
+5. **gunL2Bridge.ts** - Deploys `GunL2Bridge`
+   - Parameters: `relayRegistry` (ShogunRelayRegistry address, REQUIRED when deploying standalone), `sequencer` (optional, default: zero address = any relay can submit)
+
+6. **deployProtocol.ts** - Orchestrates deployment of core protocol contracts only
    - Deploys only the core Shogun protocol contracts
-   - Includes: RelayRegistry, DataPostRegistry, DataSaleEscrowFactory, StorageDealRegistry
+   - Includes: RelayRegistry, DataPostRegistry, DataSaleEscrowFactory, StorageDealRegistry, GunL2Bridge
    - Excludes: BridgeDex, SmartWallet, StealthAddress
 
-6. **deployAll.ts** - Orchestrates deployment of all contracts
+7. **deployAll.ts** - Orchestrates deployment of all contracts
    - Deploys all contracts in the correct order with dependencies
-   - Includes: RelayRegistry, DataPostRegistry, DataSaleEscrowFactory, StorageDealRegistry, SmartWalletFactory, StealthKeyRegistry, PayamentForwarder, BridgeDex
+   - Includes: RelayRegistry, DataPostRegistry, DataSaleEscrowFactory, StorageDealRegistry, SmartWalletFactory, StealthKeyRegistry, PayamentForwarder, BridgeDex, GunL2Bridge
 
 ### Other Modules
 
@@ -51,6 +54,7 @@ Deploy individual modules:
 ```bash
 npx hardhat ignition deploy ignition/modules/relayRegistry.ts --network baseSepolia
 npx hardhat ignition deploy ignition/modules/dataPostRegistry.ts --network baseSepolia
+npx hardhat ignition deploy ignition/modules/gunL2Bridge.ts --network baseSepolia --parameters '{"GunL2Bridge":{"relayRegistry":"0x..."}}'
 ```
 
 ### Using Deployment Scripts
@@ -78,10 +82,11 @@ When deploying manually, follow this order:
 2. **DataPostRegistry** (no dependencies)
 3. **DataSaleEscrowFactory** (depends on RelayRegistry and DataPostRegistry)
 4. **StorageDealRegistry** (depends on RelayRegistry)
-5. **SmartWalletFactory** (no dependencies)
-6. **StealthKeyRegistry** (no dependencies)
-7. **PayamentForwarder** (no dependencies, but should be configured after deployment)
-8. **BridgeDex** (no dependencies)
+5. **GunL2Bridge** (depends on RelayRegistry)
+6. **SmartWalletFactory** (no dependencies)
+7. **StealthKeyRegistry** (no dependencies)
+8. **PayamentForwarder** (no dependencies, but should be configured after deployment)
+9. **BridgeDex** (no dependencies)
 
 ## Configuration
 
@@ -112,6 +117,9 @@ npx hardhat verify --network baseSepolia <ADDRESS> <USDC_ADDRESS> <RELAY_REGISTR
 
 # StorageDealRegistry
 npx hardhat verify --network baseSepolia <ADDRESS> <RELAY_REGISTRY>
+
+# GunL2Bridge
+npx hardhat verify --network baseSepolia <ADDRESS> <RELAY_REGISTRY> <SEQUENCER>
 
 # SmartWalletFactory
 npx hardhat verify --network baseSepolia <ADDRESS>

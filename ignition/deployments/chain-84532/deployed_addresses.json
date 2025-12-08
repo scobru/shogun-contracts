@@ -2,5 +2,6 @@
   "DataPostRegistry#DataPostRegistry": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
   "RelayRegistry#ShogunRelayRegistry": "0xf5D5561C84B4Dc8676D4223AF3188d40DA42669B",
   "DeployProtocol#DataSaleEscrowFactory": "0xa9a39816b4c6EF46434892AA49E760dcEBbC8d01",
-  "DeployProtocol#StorageDealRegistry": "0x25035812952B8a8Ca001B85f4E59919D7569566B"
+  "DeployProtocol#StorageDealRegistry": "0x25035812952B8a8Ca001B85f4E59919D7569566B",
+  "GunL2Bridge#GunL2Bridge": "0x429E4559e154E9F9fb86A9587769E99F65aFc1dE"
 }

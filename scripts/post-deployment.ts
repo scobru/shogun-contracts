@@ -40,8 +40,13 @@ const CHAIN_ID_TO_NETWORK: { [chainId: string]: string } = {
 const CONTRACT_NAME_MAP: { [deployedName: string]: string } = {
   "RelayRegistry#ShogunRelayRegistry": "relayRegistry",
   "DeployProtocol#StorageDealRegistry": "storageDealRegistry",
+  "DeployAll#StorageDealRegistry": "storageDealRegistry",
   "DataPostRegistry#DataPostRegistry": "dataPostRegistry",
   "DeployProtocol#DataSaleEscrowFactory": "dataSaleEscrowFactory",
+  "DeployAll#DataSaleEscrowFactory": "dataSaleEscrowFactory",
+  "GunL2Bridge#GunL2Bridge": "gunL2Bridge",
+  "DeployAll#GunL2Bridge": "gunL2Bridge",
+  "DeployProtocol#GunL2Bridge": "gunL2Bridge",
 };
 
 function loadExistingDeployments(): DeploymentsFile {
@@ -99,7 +104,7 @@ function generateDeploymentsJson(): void {
       continue;
     }
 
-    // Inizializza la chain se non esiste
+    // Inizializza la chain se non esiste (preserva i deployment esistenti)
     if (!deployments[chainId]) {
       deployments[chainId] = {};
     }
@@ -111,11 +116,22 @@ function generateDeploymentsJson(): void {
       if (existsSync(artifactPath)) {
         try {
           const artifact = JSON.parse(readFileSync(artifactPath, "utf8"));
+          const oldAddress = deployments[chainId][contractKey]?.address;
+          const newAddress = address as string;
+          
+          // Aggiorna o aggiungi il deployment (non rimuove mai quelli esistenti)
           deployments[chainId][contractKey] = {
-            address: address as string,
+            address: newAddress,
             abi: artifact.abi,
           };
-          console.log(`Aggiornato/aggiunto: ${chainId} -> ${contractKey}`);
+          
+          if (oldAddress && oldAddress !== newAddress) {
+            console.log(`🔄 Aggiornato: ${chainId} -> ${contractKey} (${oldAddress} -> ${newAddress})`);
+          } else if (!oldAddress) {
+            console.log(`➕ Aggiunto: ${chainId} -> ${contractKey} (${newAddress})`);
+          } else {
+            console.log(`ℹ️  Già presente: ${chainId} -> ${contractKey} (${newAddress})`);
+          }
         } catch (error) {
           console.error(
             `Errore nel leggere l'artifact per ${contractKey}:`,
@@ -123,9 +139,20 @@ function generateDeploymentsJson(): void {
           );
         }
       } else {
-        console.log(`Artifact non trovato per ${contractKey}`);
+        console.log(`⚠️  Artifact non trovato per ${contractKey}, preservo deployment esistente se presente`);
+        // Se l'artifact non esiste ma c'è un deployment esistente, lo preserviamo
+        if (!deployments[chainId][contractKey] && address) {
+          console.log(`⚠️  Aggiungo ${contractKey} senza ABI (artifact mancante)`);
+          deployments[chainId][contractKey] = {
+            address: address as string,
+            abi: [], // ABI vuoto se l'artifact non è disponibile
+          };
+        }
       }
     }
+    
+    // IMPORTANTE: I contratti esistenti che non sono più in ignition vengono preservati
+    // Non vengono mai rimossi, solo aggiornati o aggiunti
   }
 
   // Scrivi il file deployments.json
@@ -197,6 +224,7 @@ interface ContractsConfig {
     storageDealRegistry: string | null;
     dataPostRegistry: string | null;
     dataSaleEscrowFactory: string | null;
+    gunL2Bridge?: string | null;
     usdc: string;
     rpc: string;
     explorer: string;
@@ -277,7 +305,7 @@ function updateContractsConfig(deployments: DeploymentsFile): void {
       continue;
     }
 
-    // Aggiorna gli indirizzi dei contratti deployati
+    // Aggiorna gli indirizzi dei contratti deployati (preserva quelli esistenti)
     for (const [contractKey, contractInfo] of Object.entries(chainDeployments)) {
       const configKey = CONTRACT_NAME_MAP[contractKey];
       
@@ -290,13 +318,21 @@ function updateContractsConfig(deployments: DeploymentsFile): void {
           (networkConfig as any)[configKey] = newAddress;
           console.log(`✅ Aggiornato ${networkName}.${configKey}: ${oldAddress || 'null'} -> ${newAddress}`);
           updated = true;
-        } else {
+        } else if (oldAddress) {
           console.log(`ℹ️  ${networkName}.${configKey} già aggiornato: ${newAddress}`);
+        } else {
+          // Nuovo contratto aggiunto
+          (networkConfig as any)[configKey] = newAddress;
+          console.log(`➕ Aggiunto ${networkName}.${configKey}: ${newAddress}`);
+          updated = true;
         }
       } else if (contractKey && !CONTRACT_NAME_MAP[contractKey]) {
-        console.log(`⚠️  Contratto ${contractKey} non mappato in CONTRACT_NAME_MAP`);
+        console.log(`⚠️  Contratto ${contractKey} non mappato in CONTRACT_NAME_MAP (verrà preservato in deployments.json ma non in contracts-config.js)`);
       }
     }
+    
+    // IMPORTANTE: I contratti esistenti in contracts-config.js che non sono più deployati
+    // vengono preservati (non vengono rimossi)
   }
 
   if (!updated) {

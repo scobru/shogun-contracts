@@ -18,6 +18,8 @@ export function getContractDeployment(
     `${contractName}#${contractName}`,
     `RelayRegistry#${contractName}`,
     `DeployProtocol#${contractName}`,
+    `DeployAll#${contractName}`,
+    `GunL2Bridge#${contractName}`,
     `Stealth#${contractName}`,
     `Recovery#${contractName}`,
     `Security#${contractName}`,

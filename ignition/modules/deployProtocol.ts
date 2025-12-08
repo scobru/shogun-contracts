@@ -1,6 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import RelayRegistryModule from "./relayRegistry";
 import DataPostRegistryModule from "./dataPostRegistry";
+import GunL2BridgeModule from "./gunL2Bridge";
 
 /**
  * Protocol Deployment Module
@@ -12,6 +13,7 @@ import DataPostRegistryModule from "./dataPostRegistry";
  * 2. DataPostRegistry (required by DataSaleEscrowFactory)
  * 3. DataSaleEscrowFactory (depends on RelayRegistry and DataPostRegistry)
  * 4. StorageDealRegistry (depends on RelayRegistry)
+ * 5. GunL2Bridge (depends on RelayRegistry)
  * 
  * USDC Addresses:
  * - Base Sepolia: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
@@ -46,11 +48,19 @@ const DeployProtocolModule = buildModule("DeployProtocol", (m) => {
     relayRegistry.relayRegistry,
   ]);
 
+  // Step 5: Deploy GunL2Bridge (depends on RelayRegistry)
+  // Use the relay registry from step 1
+  const gunL2Bridge = m.contract("GunL2Bridge", [
+    relayRegistry.relayRegistry, // Use the deployed RelayRegistry
+    "0x0000000000000000000000000000000000000000", // Zero address = any relay can submit batches
+  ]);
+
   return {
     relayRegistry: relayRegistry.relayRegistry,
     dataPostRegistry: dataPostRegistry.dataPostRegistry,
     dataSaleEscrowFactory,
     storageDealRegistry,
+    gunL2Bridge,
   };
 });
 

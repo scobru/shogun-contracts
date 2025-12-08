@@ -4,7 +4,7 @@
  * Centralized configuration file for all contract addresses across networks.
  * This file should be kept in sync with actual deployments.
  * 
- * Last updated: 2025-12-06
+ * Last updated: 2025-12-08
  */
 
 export const CONTRACTS_CONFIG = {
@@ -16,7 +16,8 @@ export const CONTRACTS_CONFIG = {
     "dataSaleEscrowFactory": "0xa9a39816b4c6EF46434892AA49E760dcEBbC8d01",
     "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     "rpc": "https://sepolia.base.org",
-    "explorer": "https://sepolia.basescan.org"
+    "explorer": "https://sepolia.basescan.org",
+    "gunL2Bridge": "0x429E4559e154E9F9fb86A9587769E99F65aFc1dE"
   },
   "base": {
     "chainId": 8453,

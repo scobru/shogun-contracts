@@ -7,6 +7,7 @@ import StorageDealRegistryModule from "./storageDealRegistry";
 import SmartWalletModule from "./smartWallet";
 import StealthModule from "./stealthAddress";
 import BridgeModule from "./bridgeDex";
+import GunL2BridgeModule from "./gunL2Bridge";
 
 /**
  * Complete Deployment Module
@@ -21,6 +22,7 @@ import BridgeModule from "./bridgeDex";
  * 5. SmartWalletFactory (no dependencies)
  * 6. StealthKeyRegistry + PayamentForwarder (no dependencies)
  * 7. BridgeDex (no dependencies)
+ * 8. GunL2Bridge (depends on RelayRegistry)
  * 
  * USDC Addresses:
  * - Base Sepolia: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
@@ -64,6 +66,13 @@ const DeployAllModule = buildModule("DeployAll", (m) => {
   // Step 7: Deploy BridgeDex (no dependencies)
   const bridge = m.useModule(BridgeModule);
 
+  // Step 8: Deploy GunL2Bridge (depends on RelayRegistry)
+  // Use the relay registry from step 1
+  const gunL2Bridge = m.contract("GunL2Bridge", [
+    relayRegistry.relayRegistry, // Use the deployed RelayRegistry
+    "0x0000000000000000000000000000000000000000", // Zero address = any relay can submit batches
+  ]);
+
   return {
     relayRegistry: relayRegistry.relayRegistry,
     dataPostRegistry: dataPostRegistry.dataPostRegistry,
@@ -73,6 +82,7 @@ const DeployAllModule = buildModule("DeployAll", (m) => {
     stealthKeyRegistry: stealth.stealthKeyRegistry,
     paymentForwarder: stealth.paymentForwarder,
     bridgeDex: bridge.bridgeDex,
+    gunL2Bridge,
   };
 });
 
