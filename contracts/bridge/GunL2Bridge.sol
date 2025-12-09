@@ -268,8 +268,9 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Receive ETH (for deposits)
+     * @dev Respects pause state to prevent deposits during emergencies
      */
-    receive() external payable {
+    receive() external payable whenNotPaused {
         if (msg.value > 0) {
             emit Deposit(msg.sender, msg.value, block.timestamp);
         }
