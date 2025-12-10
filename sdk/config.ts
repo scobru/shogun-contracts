@@ -13,22 +13,13 @@ export function getContractDeployment(
   const chainDeployments = deployments[chainIdStr];
   if (!chainDeployments) return null;
 
-  // Try different naming patterns
+  // Try different naming patterns (in order of preference)
   const patterns = [
-    `${contractName}#${contractName}`,
-    `RelayRegistry#${contractName}`,
-    `DeployProtocol#${contractName}`,
-    `DeployAll#${contractName}`,
-    `GunL2Bridge#${contractName}`,
-    `Stealth#${contractName}`,
-    `Recovery#${contractName}`,
-    `Security#${contractName}`,
-    `Relay#${contractName}`,
-    `Bridge#${contractName}`,
-    `Database#${contractName}`,
-    `IPFS#${contractName}`,
-    `HashLayer#${contractName}`,
-    contractName
+    `DeployProtocol#${contractName}`, // Preferred: from deployProtocol module
+    `DeployAll#${contractName}`,      // Alternative: from deployAll module
+    `${contractName}#${contractName}`, // Direct deployment
+    `RelayRegistry#${contractName}`,   // Legacy: if deployed via RelayRegistry module
+    contractName                       // Fallback: direct name match
   ];
 
   for (const pattern of patterns) {

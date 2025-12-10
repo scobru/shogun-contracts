@@ -10,14 +10,14 @@
 export const CONTRACTS_CONFIG = {
   "baseSepolia": {
     "chainId": 84532,
-    "relayRegistry": "0xf5D5561C84B4Dc8676D4223AF3188d40DA42669B",
-    "storageDealRegistry": "0x25035812952B8a8Ca001B85f4E59919D7569566B",
-    "dataPostRegistry": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
-    "dataSaleEscrowFactory": "0xa9a39816b4c6EF46434892AA49E760dcEBbC8d01",
+    "relayRegistry": "0xFE0e1936BAE4bE1C77876fe1d28fF05A79319961",
+    "storageDealRegistry": "0xEE1916C6A173874A7BAA6f3ABBF6dDc855F5b855",
+    "dataPostRegistry": "0x60B3C53a384A86432FeEeB15bA93aE36DF54fEC7",
+    "dataSaleEscrowFactory": "0x602dF7C4dc72Dd90A2102db63E0e7b5E22eCD0D2",
     "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     "rpc": "https://sepolia.base.org",
     "explorer": "https://sepolia.basescan.org",
-    "gunL2Bridge": "0x39D94e98203A99Ee112c608CC965fD7CA60EF510"
+    "gunL2Bridge": "0x6cB101859275427F78D09d47201Fea5FB71CE173"
   },
   "base": {
     "chainId": 8453,

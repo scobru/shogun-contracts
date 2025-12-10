@@ -1,8 +1,7 @@
 {
-  "DataPostRegistry#DataPostRegistry": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
-  "RelayRegistry#ShogunRelayRegistry": "0xf5D5561C84B4Dc8676D4223AF3188d40DA42669B",
-  "DeployProtocol#DataSaleEscrowFactory": "0xa9a39816b4c6EF46434892AA49E760dcEBbC8d01",
-  "DeployProtocol#StorageDealRegistry": "0x25035812952B8a8Ca001B85f4E59919D7569566B",
-  "GunL2Bridge#GunL2Bridge": "0x429E4559e154E9F9fb86A9587769E99F65aFc1dE",
-  "DeployProtocol#GunL2Bridge": "0x39D94e98203A99Ee112c608CC965fD7CA60EF510"
+  "DataPostRegistry#DataPostRegistry": "0x60B3C53a384A86432FeEeB15bA93aE36DF54fEC7",
+  "RelayRegistry#ShogunRelayRegistry": "0xFE0e1936BAE4bE1C77876fe1d28fF05A79319961",
+  "DeployProtocol#DataSaleEscrowFactory": "0x602dF7C4dc72Dd90A2102db63E0e7b5E22eCD0D2",
+  "DeployProtocol#GunL2Bridge": "0x6cB101859275427F78D09d47201Fea5FB71CE173",
+  "DeployProtocol#StorageDealRegistry": "0xEE1916C6A173874A7BAA6f3ABBF6dDc855F5b855"
 }
