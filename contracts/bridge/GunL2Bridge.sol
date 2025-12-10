@@ -33,6 +33,9 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
     /// @notice Emitted when sequencer submits a new batch (state root)
     /// @param batchId Sequential batch identifier
     /// @param stateRoot Merkle root of the current L2 state
+    /// @notice Emitted when sequencer submits a new batch (state root)
+    /// @param batchId Sequential batch identifier
+    /// @param stateRoot Merkle root of the current L2 state
     event BatchSubmitted(uint256 indexed batchId, bytes32 stateRoot);
 
     /// @notice Emitted when a user successfully withdraws
@@ -40,6 +43,12 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
     /// @param amount Amount withdrawn (in wei)
     /// @param nonce Unique nonce for this withdrawal
     event Withdrawal(address indexed user, uint256 amount, uint256 nonce);
+
+    /// @notice Bridge frozen event (censorship proved)
+    event BridgeFrozen(bytes32 indexed withdrawalHash, address indexed reporter);
+
+    /// @notice Force withdrawal initiated
+    event ForceWithdrawalInitiated(bytes32 indexed withdrawalHash, address indexed user, uint256 amount, uint256 deadline);
 
     // =========================================== State ===========================================
 
@@ -63,6 +72,12 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
     /// @notice Historical batch roots (batchId => stateRoot)
     /// @dev Allows users to withdraw from previous batches even if new ones are submitted
     mapping(uint256 => bytes32) public batchRoots;
+
+    /// @notice Pending force withdrawals (hash => deadline timestamp)
+    mapping(bytes32 => uint256) public pendingForceWithdrawals;
+
+    /// @notice Time window for sequencer to include force withdrawal (e.g., 24 hours)
+    uint256 public constant FORCE_WITHDRAWAL_WINDOW = 24 hours;
 
     // =========================================== Modifiers ===========================================
 
@@ -109,16 +124,68 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
         emit Deposit(msg.sender, msg.value, block.timestamp);
     }
 
+    // =========================================== Force Withdrawal (Anti-Censorship) ===========================================
+
+    /**
+     * @notice Initiate a force withdrawal request
+     * @param amount Amount to withdraw
+     * @param nonce Nonce for the withdrawal
+     * @dev This starts the timer. If sequencer doesn't include it in a batch within window, bridge can be frozen.
+     */
+    function initiateForceWithdrawal(uint256 amount, uint256 nonce) external whenNotPaused {
+        require(amount > 0, "GunL2Bridge: Invalid amount");
+        
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender, amount, nonce));
+        require(pendingForceWithdrawals[leaf] == 0, "GunL2Bridge: Already pending");
+        require(!processedWithdrawals[leaf], "GunL2Bridge: Already processed");
+
+        uint256 deadline = block.timestamp + FORCE_WITHDRAWAL_WINDOW;
+        pendingForceWithdrawals[leaf] = deadline;
+
+        emit ForceWithdrawalInitiated(leaf, msg.sender, amount, deadline);
+    }
+
+    /**
+     * @notice Prove censorship and freeze the bridge
+     * @param user User address
+     * @param amount Amount
+     * @param nonce Nonce
+     * @dev If deadline passed and request still pending, sequencer is censoring.
+     */
+    function proveCensorship(address user, uint256 amount, uint256 nonce) external {
+        bytes32 leaf = keccak256(abi.encodePacked(user, amount, nonce));
+        uint256 deadline = pendingForceWithdrawals[leaf];
+
+        require(deadline != 0, "GunL2Bridge: Not pending");
+        require(block.timestamp > deadline, "GunL2Bridge: Deadline not passed");
+
+        _pause(); // Freeze the bridge
+        emit BridgeFrozen(leaf, msg.sender);
+    }
+
     // =========================================== Batch Submission (Sequencer) ===========================================
 
     /**
      * @notice Submit a new batch with updated state root
      * @param _newRoot Merkle root of the current L2 state (includes all pending withdrawals)
-     * @dev Only sequencer (if set) or registered relay can call this. The root represents the state
-     *      after processing all L2 transactions (including withdrawal requests) since the last batch.
+     * @param _handledForceWithdrawals List of force withdrawal hashes included in this batch
+     * @dev Only sequencer (if set) or registered relay can call this. 
+     *      MUST acknowledge pending force withdrawals to avoid being accused of censorship.
      */
-    function submitBatch(bytes32 _newRoot) external onlySequencerOrRelay whenNotPaused {
+    function submitBatch(
+        bytes32 _newRoot, 
+        bytes32[] calldata _handledForceWithdrawals
+    ) external onlySequencerOrRelay whenNotPaused {
         require(_newRoot != bytes32(0), "GunL2Bridge: Invalid root");
+        
+        // Clear handled force withdrawals
+        for (uint256 i = 0; i < _handledForceWithdrawals.length; i++) {
+            bytes32 leaf = _handledForceWithdrawals[i];
+            if (pendingForceWithdrawals[leaf] != 0) {
+                delete pendingForceWithdrawals[leaf];
+            }
+        }
+
         currentStateRoot = _newRoot;
         currentBatchId++;
         batchRoots[currentBatchId] = _newRoot;

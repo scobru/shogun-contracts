@@ -159,6 +159,8 @@ describe("GunL2Bridge", function () {
         sequencer.address
       );
       await bridgeWithSequencer.waitForDeployment();
+
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
       expect(await bridgeWithSequencer.sequencer()).to.equal(sequencer.address);
     });
   });
@@ -223,8 +225,11 @@ describe("GunL2Bridge", function () {
     it("Should allow registered relay to submit batch when sequencer is zero", async function () {
       const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
 
+
+
+
       await expect(
-        bridge.connect(relay1).submitBatch(stateRoot)
+        bridge.connect(relay1).submitBatch(stateRoot, [])
       ).to.emit(bridge, "BatchSubmitted")
         .withArgs(1, stateRoot);
 
@@ -235,8 +240,9 @@ describe("GunL2Bridge", function () {
     it("Should reject batch submission from non-registered address", async function () {
       const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
 
+
       await expect(
-        bridge.connect(user1).submitBatch(stateRoot)
+        bridge.connect(user1).submitBatch(stateRoot, [])
       ).to.be.revertedWith("GunL2Bridge: Not sequencer or registered relay");
     });
 
@@ -253,10 +259,14 @@ describe("GunL2Bridge", function () {
       const root1 = ethers.keccak256(ethers.toUtf8Bytes("root1"));
       const root2 = ethers.keccak256(ethers.toUtf8Bytes("root2"));
 
-      await bridge.connect(relay1).submitBatch(root1);
+
+
+
+
+      await bridge.connect(relay1).submitBatch(root1, []);
       expect(await bridge.currentBatchId()).to.equal(1);
 
-      await bridge.connect(relay2).submitBatch(root2);
+      await bridge.connect(relay2).submitBatch(root2, []);
       expect(await bridge.currentBatchId()).to.equal(2);
       expect(await bridge.currentStateRoot()).to.equal(root2);
     });
@@ -272,31 +282,35 @@ describe("GunL2Bridge", function () {
 
       const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
 
+
+
+
+
       await expect(
-        bridgeWithSequencer.connect(sequencer).submitBatch(stateRoot)
+        bridgeWithSequencer.connect(sequencer).submitBatch(stateRoot, [])
       ).to.emit(bridgeWithSequencer, "BatchSubmitted");
 
       // Registered relay should NOT be able to submit when sequencer is set
       await expect(
-        bridgeWithSequencer.connect(relay1).submitBatch(stateRoot)
+        bridgeWithSequencer.connect(relay1).submitBatch(stateRoot, [])
       ).to.be.revertedWith("GunL2Bridge: Not sequencer");
     });
 
     it("Should allow owner to switch from relay-based to dedicated sequencer", async function () {
       // Initially any relay can submit
       const root1 = ethers.keccak256(ethers.toUtf8Bytes("root1"));
-      await bridge.connect(relay1).submitBatch(root1);
+      await bridge.connect(relay1).submitBatch(root1, []);
 
       // Set dedicated sequencer
       await bridge.connect(owner).setSequencer(sequencer.address);
 
       // Now only sequencer can submit
       const root2 = ethers.keccak256(ethers.toUtf8Bytes("root2"));
-      await bridge.connect(sequencer).submitBatch(root2);
+      await bridge.connect(sequencer).submitBatch(root2, []);
 
       // Relay should be rejected
       await expect(
-        bridge.connect(relay1).submitBatch(root2)
+        bridge.connect(relay1).submitBatch(root2, [])
       ).to.be.revertedWith("GunL2Bridge: Not sequencer");
     });
 
@@ -309,19 +323,22 @@ describe("GunL2Bridge", function () {
       );
       await bridgeWithSequencer.waitForDeployment();
 
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
+
       // Set sequencer to zero (allow any relay)
       await bridgeWithSequencer.connect(owner).setSequencer(ethers.ZeroAddress);
 
       // Now relay can submit
-      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
+
+
       await expect(
-        bridgeWithSequencer.connect(relay1).submitBatch(stateRoot)
+        bridgeWithSequencer.connect(relay1).submitBatch(stateRoot, [])
       ).to.emit(bridgeWithSequencer, "BatchSubmitted");
     });
 
     it("Should reject zero root", async function () {
       await expect(
-        bridge.connect(relay1).submitBatch(ethers.ZeroHash)
+        bridge.connect(relay1).submitBatch(ethers.ZeroHash, [])
       ).to.be.revertedWith("GunL2Bridge: Invalid root");
     });
 
@@ -329,10 +346,10 @@ describe("GunL2Bridge", function () {
       const root1 = ethers.keccak256(ethers.toUtf8Bytes("root1"));
       const root2 = ethers.keccak256(ethers.toUtf8Bytes("root2"));
 
-      await bridge.connect(relay1).submitBatch(root1);
+      await bridge.connect(relay1).submitBatch(root1, []);
       expect(await bridge.currentBatchId()).to.equal(1);
 
-      await bridge.connect(relay1).submitBatch(root2);
+      await bridge.connect(relay1).submitBatch(root2, []);
       expect(await bridge.currentBatchId()).to.equal(2);
       expect(await bridge.currentStateRoot()).to.equal(root2);
     });
@@ -341,8 +358,9 @@ describe("GunL2Bridge", function () {
       await bridge.connect(owner).pause();
       const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
 
+
       await expect(
-        bridge.connect(relay1).submitBatch(stateRoot)
+        bridge.connect(relay1).submitBatch(stateRoot, [])
       ).to.be.revertedWithCustomError(bridge, "EnforcedPause");
     });
   });
@@ -382,7 +400,7 @@ describe("GunL2Bridge", function () {
       proof2 = proofs.get(leaf2) || [];
 
       // Submit batch (using registered relay)
-      await bridge.connect(relay1).submitBatch(merkleRoot);
+      await bridge.connect(relay1).submitBatch(merkleRoot, []);
     });
 
     it("Should allow valid withdrawal with Merkle proof", async function () {
@@ -482,7 +500,7 @@ describe("GunL2Bridge", function () {
       const { root: newRoot, proofs } = buildMerkleTree([largeLeaf]);
       const largeProof = proofs.get(largeLeaf) || [];
 
-      await bridge.connect(relay1).submitBatch(newRoot);
+      await bridge.connect(relay1).submitBatch(newRoot, []);
 
       await expect(
         bridge.connect(user1).withdraw(largeWithdrawal.amount, largeWithdrawal.nonce, 2, largeProof)
@@ -509,6 +527,7 @@ describe("GunL2Bridge", function () {
 
     it("Should be paused when contract is paused", async function () {
       await bridge.connect(owner).pause();
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
 
       await expect(
         bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, proof1)
@@ -530,7 +549,7 @@ describe("GunL2Bridge", function () {
       const { root, proofs } = buildMerkleTree([leaf]);
       const proof = proofs.get(leaf) || [];
 
-      await bridge.connect(relay1).submitBatch(root);
+      await bridge.connect(relay1).submitBatch(root, []);
 
       await expect(
         bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, 1, proof)
@@ -550,7 +569,7 @@ describe("GunL2Bridge", function () {
       const leaves = withdrawals.map((w) => computeLeaf(w.user, w.amount, w.nonce));
       const { root, proofs } = buildMerkleTree(leaves);
 
-      await bridge.connect(relay1).submitBatch(root);
+      await bridge.connect(relay1).submitBatch(root, []);
 
       // Verify all withdrawals
       for (const withdrawal of withdrawals) {
@@ -581,7 +600,7 @@ describe("GunL2Bridge", function () {
       const { root, proofs } = buildMerkleTree([leaf]);
       const proof = proofs.get(leaf) || [];
 
-      await bridge.connect(relay1).submitBatch(root);
+      await bridge.connect(relay1).submitBatch(root, []);
 
       await expect(
         bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, 1, proof)
@@ -612,8 +631,9 @@ describe("GunL2Bridge", function () {
 
       // Now relay can submit
       const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
+
       await expect(
-        bridge.connect(relay1).submitBatch(stateRoot)
+        bridge.connect(relay1).submitBatch(stateRoot, [])
       ).to.emit(bridge, "BatchSubmitted");
     });
 
@@ -726,7 +746,7 @@ describe("GunL2Bridge", function () {
       const { root, proofs } = buildMerkleTree([leaf]);
       const proof = proofs.get(leaf) || [];
 
-      await bridge.connect(relay1).submitBatch(root);
+      await bridge.connect(relay1).submitBatch(root, []);
 
       await expect(
         bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, 1, proof)
@@ -747,7 +767,7 @@ describe("GunL2Bridge", function () {
       const { root, proofs } = buildMerkleTree([leaf]);
       const proof = proofs.get(leaf) || [];
 
-      await bridge.connect(relay1).submitBatch(root);
+      await bridge.connect(relay1).submitBatch(root, []);
 
       await expect(
         bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, 1, proof)
@@ -779,7 +799,7 @@ describe("GunL2Bridge", function () {
       const leaves = withdrawals.map((w) => computeLeaf(w.user, w.amount, w.nonce));
       const { root, proofs } = buildMerkleTree(leaves);
 
-      await bridge.connect(relay1).submitBatch(root);
+      await bridge.connect(relay1).submitBatch(root, []);
 
       // Verify all withdrawals work
       for (const withdrawal of withdrawals) {
@@ -802,7 +822,7 @@ describe("GunL2Bridge", function () {
       const withdrawal1 = { user: user1.address, amount: WITHDRAW_AMOUNT, nonce: 1n };
       const leaf1 = computeLeaf(withdrawal1.user, withdrawal1.amount, withdrawal1.nonce);
       const { root: root1, proofs: proofs1 } = buildMerkleTree([leaf1]);
-      await bridge.connect(relay1).submitBatch(root1);
+      await bridge.connect(relay1).submitBatch(root1, []);
       const proof1 = proofs1.get(leaf1) || [];
 
       expect(await bridge.currentBatchId()).to.equal(1);
@@ -817,7 +837,7 @@ describe("GunL2Bridge", function () {
       // If we submit a NEW root, it might essentially fork the history if not careful.
       // But here we are testing the ability to withdraw against an OLD root.
       const { root: root2, proofs: proofs2 } = buildMerkleTree([leaf2]);
-      await bridge.connect(relay1).submitBatch(root2);
+      await bridge.connect(relay1).submitBatch(root2, []);
       const proof2 = proofs2.get(leaf2) || [];
 
       expect(await bridge.currentBatchId()).to.equal(2);
@@ -832,6 +852,76 @@ describe("GunL2Bridge", function () {
       await expect(
         bridge.connect(user2).withdraw(withdrawal2.amount, withdrawal2.nonce, 2, proof2)
       ).to.emit(bridge, "Withdrawal");
+    });
+  });
+
+  describe("Force Withdrawals (Anti-Censorship)", function () {
+    it("Should allow user to initiate force withdrawal", async function () {
+      const tx = await bridge.connect(user1).initiateForceWithdrawal(WITHDRAW_AMOUNT, 1);
+      const receipt = await tx.wait();
+      const block = await ethers.provider.getBlock(receipt?.blockNumber || 0);
+      const deadline = BigInt(block?.timestamp || 0) + 24n * 3600n;
+
+      const leaf = computeLeaf(user1.address, WITHDRAW_AMOUNT, 1n);
+
+      await expect(tx)
+        .to.emit(bridge, "ForceWithdrawalInitiated")
+        .withArgs(leaf, user1.address, WITHDRAW_AMOUNT, deadline);
+
+      expect(await bridge.pendingForceWithdrawals(leaf)).to.equal(deadline);
+    });
+
+    it("Should reject duplicate force withdrawal initiation", async function () {
+      await bridge.connect(user1).initiateForceWithdrawal(WITHDRAW_AMOUNT, 1);
+      await expect(
+        bridge.connect(user1).initiateForceWithdrawal(WITHDRAW_AMOUNT, 1)
+      ).to.be.revertedWith("GunL2Bridge: Already pending");
+    });
+
+    it("Should allow sequencer to clear force withdrawal in batch", async function () {
+      // 1. Initiate
+      await bridge.connect(user1).initiateForceWithdrawal(WITHDRAW_AMOUNT, 1);
+      const leaf = computeLeaf(user1.address, WITHDRAW_AMOUNT, 1n);
+
+      // 2. Submit batch acknowledging it
+      const root = ethers.keccak256(ethers.toUtf8Bytes("rootsie"));
+      await bridge.connect(relay1).submitBatch(root, [leaf]);
+
+      // 3. Verify cleared
+      expect(await bridge.pendingForceWithdrawals(leaf)).to.equal(0);
+    });
+
+    it("Should allow proving censorship (freezing bridge) after timeout", async function () {
+      // 1. Initiate
+      await bridge.connect(user1).initiateForceWithdrawal(WITHDRAW_AMOUNT, 1);
+
+      // 2. Advance time past deadline (24 hours + 1 second)
+      await time.increase(24 * 3600 + 1);
+
+      // 3. Prove censorship
+      await expect(
+        bridge.connect(user1).proveCensorship(user1.address, WITHDRAW_AMOUNT, 1)
+      ).to.emit(bridge, "BridgeFrozen");
+
+      // 4. Verify paused
+      expect(await bridge.paused()).to.be.true;
+    });
+
+    it("Should reject proving censorship before timeout", async function () {
+      await bridge.connect(user1).initiateForceWithdrawal(WITHDRAW_AMOUNT, 1);
+
+      // Advance time only partially
+      await time.increase(23 * 3600);
+
+      await expect(
+        bridge.connect(user1).proveCensorship(user1.address, WITHDRAW_AMOUNT, 1)
+      ).to.be.revertedWith("GunL2Bridge: Deadline not passed");
+    });
+
+    it("Should reject proving censorship if not pending", async function () {
+      await expect(
+        bridge.connect(user1).proveCensorship(user1.address, WITHDRAW_AMOUNT, 1)
+      ).to.be.revertedWith("GunL2Bridge: Not pending");
     });
   });
 });
