@@ -1,7 +1,7 @@
 {
-  "DataPostRegistry#DataPostRegistry": "0x60B3C53a384A86432FeEeB15bA93aE36DF54fEC7",
-  "RelayRegistry#ShogunRelayRegistry": "0xFE0e1936BAE4bE1C77876fe1d28fF05A79319961",
-  "DeployProtocol#DataSaleEscrowFactory": "0x602dF7C4dc72Dd90A2102db63E0e7b5E22eCD0D2",
-  "DeployProtocol#GunL2Bridge": "0x6cB101859275427F78D09d47201Fea5FB71CE173",
-  "DeployProtocol#StorageDealRegistry": "0xEE1916C6A173874A7BAA6f3ABBF6dDc855F5b855"
+  "DataPostRegistry#DataPostRegistry": "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421",
+  "RelayRegistry#ShogunRelayRegistry": "0x8B88258923bad2d634e533Cb6405d4022CfF320f",
+  "DeployProtocol#DataSaleEscrowFactory": "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D",
+  "DeployProtocol#GunL2Bridge": "0x0F52c90C5704E2aB9cec56eE2C06dD86602988A0",
+  "DeployProtocol#StorageDealRegistry": "0x1D7E662FA5C7c4166E2740B590aC014458582302"
 }

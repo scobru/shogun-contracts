@@ -50,6 +50,15 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
     /// @notice Force withdrawal initiated
     event ForceWithdrawalInitiated(bytes32 indexed withdrawalHash, address indexed user, uint256 amount, uint256 deadline);
 
+    /// @notice Batch finalized after challenge period
+    event BatchFinalized(uint256 indexed batchId, bytes32 stateRoot);
+
+    /// @notice Batch challenged and fraud proven
+    event BatchChallenged(uint256 indexed batchId, address indexed challenger);
+    
+    /// @notice Challenger slashed for false challenge
+    event ChallengerSlashed(uint256 indexed batchId, address indexed challenger);
+
     // =========================================== State ===========================================
 
     /// @notice ShogunRelayRegistry contract address
@@ -78,6 +87,28 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Time window for sequencer to include force withdrawal (e.g., 24 hours)
     uint256 public constant FORCE_WITHDRAWAL_WINDOW = 24 hours;
+
+    /// @notice Challenge period before batch is finalized (e.g., 1 day for MVP, 7 days for production)
+    uint256 public constant CHALLENGE_PERIOD = 1 days;
+
+    /// @notice Minimum stake required to challenge a batch
+    uint256 public constant CHALLENGE_BOND = 0.1 ether;
+
+    /// @notice Batch info for fraud proof tracking
+    struct BatchInfo {
+        bytes32 root;
+        bytes32 dataHash;       // Hash of batch data for re-execution
+        uint256 submittedAt;
+        bool finalized;
+        bool challenged;
+        address challenger;
+    }
+
+    /// @notice Detailed batch info (for fraud proofs)
+    mapping(uint256 => BatchInfo) public batchInfo;
+
+    /// @notice Challenger bonds (batchId => challenger => bond)
+    mapping(uint256 => mapping(address => uint256)) public challengerBonds;
 
     // =========================================== Modifiers ===========================================
 
@@ -189,7 +220,91 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
         currentStateRoot = _newRoot;
         currentBatchId++;
         batchRoots[currentBatchId] = _newRoot;
+        
+        // Store batch info for fraud proof tracking
+        batchInfo[currentBatchId] = BatchInfo({
+            root: _newRoot,
+            dataHash: keccak256(abi.encode(_handledForceWithdrawals)),
+            submittedAt: block.timestamp,
+            finalized: false,
+            challenged: false,
+            challenger: address(0)
+        });
+        
         emit BatchSubmitted(currentBatchId, _newRoot);
+    }
+
+    /**
+     * @notice Finalize a batch after challenge period
+     * @param batchId Batch to finalize
+     * @dev Can only be called after CHALLENGE_PERIOD has passed without successful challenge
+     */
+    function finalizeBatch(uint256 batchId) external {
+        BatchInfo storage batch = batchInfo[batchId];
+        require(batch.root != bytes32(0), "GunL2Bridge: Invalid batch");
+        require(!batch.finalized, "GunL2Bridge: Already finalized");
+        require(!batch.challenged, "GunL2Bridge: Batch challenged");
+        require(block.timestamp > batch.submittedAt + CHALLENGE_PERIOD, "GunL2Bridge: Challenge period active");
+        
+        batch.finalized = true;
+        emit BatchFinalized(batchId, batch.root);
+    }
+
+    /**
+     * @notice Challenge a batch (claim fraud)
+     * @param batchId Batch to challenge
+     * @dev Requires CHALLENGE_BOND stake. If fraud is proven, challenger gets reward.
+     */
+    function challengeBatch(uint256 batchId) external payable {
+        require(msg.value >= CHALLENGE_BOND, "GunL2Bridge: Insufficient bond");
+        
+        BatchInfo storage batch = batchInfo[batchId];
+        require(batch.root != bytes32(0), "GunL2Bridge: Invalid batch");
+        require(!batch.finalized, "GunL2Bridge: Already finalized");
+        require(!batch.challenged, "GunL2Bridge: Already challenged");
+        require(block.timestamp <= batch.submittedAt + CHALLENGE_PERIOD, "GunL2Bridge: Challenge period ended");
+        
+        batch.challenged = true;
+        batch.challenger = msg.sender;
+        challengerBonds[batchId][msg.sender] = msg.value;
+        
+        emit BatchChallenged(batchId, msg.sender);
+        
+        // In a full implementation, this would trigger dispute resolution
+        // For now, we pause the bridge to require manual intervention
+        _pause();
+    }
+
+    /**
+     * @notice Resolve a challenge (owner only for MVP)
+     * @param batchId Batch ID
+     * @param fraudProven True if fraud was proven, false if challenge was invalid
+     */
+    function resolveChallenge(uint256 batchId, bool fraudProven) external onlyOwner {
+        BatchInfo storage batch = batchInfo[batchId];
+        require(batch.challenged, "GunL2Bridge: Not challenged");
+        
+        address challenger = batch.challenger;
+        uint256 bond = challengerBonds[batchId][challenger];
+        
+        if (fraudProven) {
+            // Fraud proven: revert batch, reward challenger
+            // Clear the batch root so it cannot be used for withdrawals
+            batchRoots[batchId] = bytes32(0);
+            batch.root = bytes32(0);
+            
+            // Return bond to challenger (+ reward from sequencer stake in future)
+            (bool sent, ) = payable(challenger).call{value: bond}("");
+            require(sent, "GunL2Bridge: Bond return failed");
+        } else {
+            // False challenge: slash challenger bond
+            // Bond goes to sequencer or protocol treasury
+            challengerBonds[batchId][challenger] = 0;
+            emit ChallengerSlashed(batchId, challenger);
+        }
+        
+        batch.challenged = false;
+        _unpause();
     }
 
     // =========================================== Withdrawal (L2 -> L1) ===========================================

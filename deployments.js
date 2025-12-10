@@ -4,7 +4,7 @@
 export const DEPLOYMENTS = {
   "84532": {
     "DataPostRegistry#DataPostRegistry": {
-      "address": "0x60B3C53a384A86432FeEeB15bA93aE36DF54fEC7",
+      "address": "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421",
       "abi": [
         {
           "inputs": [],
@@ -613,7 +613,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "RelayRegistry#ShogunRelayRegistry": {
-      "address": "0xFE0e1936BAE4bE1C77876fe1d28fF05A79319961",
+      "address": "0x8B88258923bad2d634e533Cb6405d4022CfF320f",
       "abi": [
         {
           "inputs": [
@@ -2006,7 +2006,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "DeployProtocol#DataSaleEscrowFactory": {
-      "address": "0x602dF7C4dc72Dd90A2102db63E0e7b5E22eCD0D2",
+      "address": "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D",
       "abi": [
         {
           "inputs": [
@@ -2298,7 +2298,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "DeployProtocol#StorageDealRegistry": {
-      "address": "0xEE1916C6A173874A7BAA6f3ABBF6dDc855F5b855",
+      "address": "0x1D7E662FA5C7c4166E2740B590aC014458582302",
       "abi": [
         {
           "inputs": [
@@ -3042,7 +3042,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "DeployProtocol#GunL2Bridge": {
-      "address": "0x6cB101859275427F78D09d47201Fea5FB71CE173",
+      "address": "0x0F52c90C5704E2aB9cec56eE2C06dD86602988A0",
       "abi": [
         {
           "inputs": [
@@ -3107,6 +3107,44 @@ export const DEPLOYMENTS = {
               "type": "uint256"
             },
             {
+              "indexed": true,
+              "internalType": "address",
+              "name": "challenger",
+              "type": "address"
+            }
+          ],
+          "name": "BatchChallenged",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "batchId",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "bytes32",
+              "name": "stateRoot",
+              "type": "bytes32"
+            }
+          ],
+          "name": "BatchFinalized",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "batchId",
+              "type": "uint256"
+            },
+            {
               "indexed": false,
               "internalType": "bytes32",
               "name": "stateRoot",
@@ -3114,6 +3152,44 @@ export const DEPLOYMENTS = {
             }
           ],
           "name": "BatchSubmitted",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "bytes32",
+              "name": "withdrawalHash",
+              "type": "bytes32"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "reporter",
+              "type": "address"
+            }
+          ],
+          "name": "BridgeFrozen",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "batchId",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "challenger",
+              "type": "address"
+            }
+          ],
+          "name": "ChallengerSlashed",
           "type": "event"
         },
         {
@@ -3139,6 +3215,37 @@ export const DEPLOYMENTS = {
             }
           ],
           "name": "Deposit",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "bytes32",
+              "name": "withdrawalHash",
+              "type": "bytes32"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "user",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            }
+          ],
+          "name": "ForceWithdrawalInitiated",
           "type": "event"
         },
         {
@@ -3212,6 +3319,89 @@ export const DEPLOYMENTS = {
           "type": "event"
         },
         {
+          "inputs": [],
+          "name": "CHALLENGE_BOND",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "CHALLENGE_PERIOD",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "FORCE_WITHDRAWAL_WINDOW",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "batchInfo",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "root",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "dataHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "submittedAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "finalized",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "challenged",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "challenger",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "uint256",
@@ -3225,6 +3415,43 @@ export const DEPLOYMENTS = {
               "internalType": "bytes32",
               "name": "",
               "type": "bytes32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "batchId",
+              "type": "uint256"
+            }
+          ],
+          "name": "challengeBatch",
+          "outputs": [],
+          "stateMutability": "payable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "challengerBonds",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
             }
           ],
           "stateMutability": "view",
@@ -3282,6 +3509,19 @@ export const DEPLOYMENTS = {
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "batchId",
+              "type": "uint256"
+            }
+          ],
+          "name": "finalizeBatch",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "getBalance",
           "outputs": [
@@ -3292,6 +3532,24 @@ export const DEPLOYMENTS = {
             }
           ],
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "name": "initiateForceWithdrawal",
+          "outputs": [],
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
@@ -3364,6 +3622,25 @@ export const DEPLOYMENTS = {
               "type": "bytes32"
             }
           ],
+          "name": "pendingForceWithdrawals",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
           "name": "processedWithdrawals",
           "outputs": [
             {
@@ -3373,6 +3650,29 @@ export const DEPLOYMENTS = {
             }
           ],
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "user",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "name": "proveCensorship",
+          "outputs": [],
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
@@ -3391,6 +3691,24 @@ export const DEPLOYMENTS = {
         {
           "inputs": [],
           "name": "renounceOwnership",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "batchId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "fraudProven",
+              "type": "bool"
+            }
+          ],
+          "name": "resolveChallenge",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
@@ -3440,6 +3758,11 @@ export const DEPLOYMENTS = {
               "internalType": "bytes32",
               "name": "_newRoot",
               "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32[]",
+              "name": "_handledForceWithdrawals",
+              "type": "bytes32[]"
             }
           ],
           "name": "submitBatch",

@@ -924,5 +924,122 @@ describe("GunL2Bridge", function () {
       ).to.be.revertedWith("GunL2Bridge: Not pending");
     });
   });
+
+  describe("Fraud Proofs (Optimistic Rollup)", function () {
+    beforeEach(async function () {
+      // Fund user first
+      await bridge.connect(user1).deposit({ value: DEPOSIT_AMOUNT });
+    });
+
+    it("Should not allow finalization before challenge period", async function () {
+      // Submit batch (use relay1 who is registered, not sequencer who is not)
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
+      await bridge.connect(relay1).submitBatch(stateRoot, []);
+      const batchId = await bridge.currentBatchId();
+
+      // Try to finalize immediately
+      await expect(
+        bridge.finalizeBatch(batchId)
+      ).to.be.revertedWith("GunL2Bridge: Challenge period active");
+    });
+
+    it("Should allow finalization after challenge period", async function () {
+      // Submit batch (use relay1 who is registered, not sequencer who is not)
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
+      await bridge.connect(relay1).submitBatch(stateRoot, []);
+      const batchId = await bridge.currentBatchId();
+
+      // Advance time past challenge period (1 day)
+      await time.increase(24 * 3600 + 1);
+
+      // Finalize should succeed
+      await expect(bridge.finalizeBatch(batchId))
+        .to.emit(bridge, "BatchFinalized")
+        .withArgs(batchId, stateRoot);
+
+      // Verify finalized
+      const info = await bridge.batchInfo(batchId);
+      expect(info.finalized).to.be.true;
+    });
+
+    it("Should allow challenging a batch", async function () {
+      // Submit batch (use relay1 who is registered, not sequencer who is not)
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
+      await bridge.connect(relay1).submitBatch(stateRoot, []);
+      const batchId = await bridge.currentBatchId();
+
+      const CHALLENGE_BOND = ethers.parseEther("0.1");
+
+      // Challenge
+      await expect(
+        bridge.connect(user1).challengeBatch(batchId, { value: CHALLENGE_BOND })
+      ).to.emit(bridge, "BatchChallenged")
+        .withArgs(batchId, user1.address);
+
+      // Bridge should be paused
+      expect(await bridge.paused()).to.be.true;
+    });
+
+    it("Should reject challenge with insufficient bond", async function () {
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
+      await bridge.connect(relay1).submitBatch(stateRoot, []);
+      const batchId = await bridge.currentBatchId();
+
+      // Try to challenge with too little
+      await expect(
+        bridge.connect(user1).challengeBatch(batchId, { value: ethers.parseEther("0.01") })
+      ).to.be.revertedWith("GunL2Bridge: Insufficient bond");
+    });
+
+    it("Should reject challenge after period ends", async function () {
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("test-root"));
+      await bridge.connect(relay1).submitBatch(stateRoot, []);
+      const batchId = await bridge.currentBatchId();
+
+      // Advance past challenge period
+      await time.increase(24 * 3600 + 1);
+
+      const CHALLENGE_BOND = ethers.parseEther("0.1");
+      await expect(
+        bridge.connect(user1).challengeBatch(batchId, { value: CHALLENGE_BOND })
+      ).to.be.revertedWith("GunL2Bridge: Challenge period ended");
+    });
+
+    it("Should resolve challenge (fraud proven)", async function () {
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("bad-root"));
+      await bridge.connect(relay1).submitBatch(stateRoot, []);
+      const batchId = await bridge.currentBatchId();
+
+      const CHALLENGE_BOND = ethers.parseEther("0.1");
+      await bridge.connect(user1).challengeBatch(batchId, { value: CHALLENGE_BOND });
+
+      // Owner resolves: fraud confirmed
+      await bridge.connect(owner).resolveChallenge(batchId, true);
+
+      // Batch root should be cleared
+      const root = await bridge.batchRoots(batchId);
+      expect(root).to.equal(ethers.ZeroHash);
+
+      // Bridge should be unpaused
+      expect(await bridge.paused()).to.be.false;
+    });
+
+    it("Should slash challenger on false challenge", async function () {
+      const stateRoot = ethers.keccak256(ethers.toUtf8Bytes("valid-root"));
+      await bridge.connect(relay1).submitBatch(stateRoot, []);
+      const batchId = await bridge.currentBatchId();
+
+      const CHALLENGE_BOND = ethers.parseEther("0.1");
+      await bridge.connect(user1).challengeBatch(batchId, { value: CHALLENGE_BOND });
+
+      // Owner resolves: challenge invalid
+      await expect(bridge.connect(owner).resolveChallenge(batchId, false))
+        .to.emit(bridge, "ChallengerSlashed")
+        .withArgs(batchId, user1.address);
+
+      // Bridge should be unpaused
+      expect(await bridge.paused()).to.be.false;
+    });
+  });
 });
 
