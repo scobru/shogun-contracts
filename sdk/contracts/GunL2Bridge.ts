@@ -43,14 +43,15 @@ export class GunL2Bridge extends BaseContract {
    * Withdraw ETH from L2 to L1 using Merkle proof
    * @param amount Amount to withdraw in wei
    * @param nonce Unique nonce for this withdrawal (prevents replay)
+   * @param batchId Batch ID the withdrawal belongs to
    * @param proof Merkle proof array (sibling hashes from leaf to root)
    * @returns Transaction receipt
    */
-  async withdraw(amount: bigint, nonce: bigint, proof: string[]) {
+  async withdraw(amount: bigint, nonce: bigint, batchId: bigint, proof: string[]) {
     if (!this.signer) {
       throw new Error('Signer required for withdraw');
     }
-    return await this.contract.withdraw(amount, nonce, proof);
+    return await this.contract.withdraw(amount, nonce, batchId, proof);
   }
 
   /**

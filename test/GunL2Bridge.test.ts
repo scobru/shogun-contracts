@@ -168,7 +168,7 @@ describe("GunL2Bridge", function () {
       const tx = await bridge.connect(user1).deposit({ value: DEPOSIT_AMOUNT });
       const receipt = await tx.wait();
       const block = await ethers.provider.getBlock(receipt?.blockNumber || 0);
-      
+
       await expect(tx)
         .to.emit(bridge, "Deposit")
         .withArgs(user1.address, DEPOSIT_AMOUNT, block?.timestamp || 0);
@@ -196,11 +196,11 @@ describe("GunL2Bridge", function () {
     it("Should emit Deposit event with correct parameters", async function () {
       const tx = await bridge.connect(user1).deposit({ value: DEPOSIT_AMOUNT });
       const receipt = await tx.wait();
-      
+
       const depositEvent = receipt?.logs.find(
         (log) => bridge.interface.parseLog(log as any)?.name === "Deposit"
       );
-      
+
       expect(depositEvent).to.not.be.undefined;
       if (depositEvent) {
         const parsed = bridge.interface.parseLog(depositEvent as any);
@@ -391,6 +391,7 @@ describe("GunL2Bridge", function () {
       const tx = await bridge.connect(user1).withdraw(
         withdrawal1.amount,
         withdrawal1.nonce,
+        1,
         proof1
       );
       const receipt = await tx.wait();
@@ -410,7 +411,7 @@ describe("GunL2Bridge", function () {
       const invalidProof = [ethers.keccak256(ethers.toUtf8Bytes("invalid"))];
 
       await expect(
-        bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, invalidProof)
+        bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, invalidProof)
       ).to.be.revertedWith("GunL2Bridge: Invalid Merkle proof");
     });
 
@@ -421,7 +422,7 @@ describe("GunL2Bridge", function () {
       const wrongProof = proofs.get(wrongLeaf) || [];
 
       await expect(
-        bridge.connect(user1).withdraw(wrongAmount, withdrawal1.nonce, wrongProof)
+        bridge.connect(user1).withdraw(wrongAmount, withdrawal1.nonce, 1, wrongProof)
       ).to.be.revertedWith("GunL2Bridge: Invalid Merkle proof");
     });
 
@@ -432,30 +433,30 @@ describe("GunL2Bridge", function () {
       const wrongProof = proofs.get(wrongLeaf) || [];
 
       await expect(
-        bridge.connect(user1).withdraw(withdrawal1.amount, wrongNonce, wrongProof)
+        bridge.connect(user1).withdraw(withdrawal1.amount, wrongNonce, 1, wrongProof)
       ).to.be.revertedWith("GunL2Bridge: Invalid Merkle proof");
     });
 
     it("Should reject withdrawal from wrong user", async function () {
       // User2 tries to withdraw user1's withdrawal
       await expect(
-        bridge.connect(user2).withdraw(withdrawal1.amount, withdrawal1.nonce, proof1)
+        bridge.connect(user2).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, proof1)
       ).to.be.revertedWith("GunL2Bridge: Invalid Merkle proof");
     });
 
     it("Should prevent replay attack (double withdrawal)", async function () {
       // First withdrawal succeeds
-      await bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, proof1);
+      await bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, proof1);
 
       // Second attempt with same proof should fail
       await expect(
-        bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, proof1)
+        bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, proof1)
       ).to.be.revertedWith("GunL2Bridge: Withdrawal already processed");
     });
 
     it("Should allow multiple different withdrawals", async function () {
-      await bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, proof1);
-      await bridge.connect(user2).withdraw(withdrawal2.amount, withdrawal2.nonce, proof2);
+      await bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, proof1);
+      await bridge.connect(user2).withdraw(withdrawal2.amount, withdrawal2.nonce, 1, proof2);
 
       const contractBalance = await ethers.provider.getBalance(await bridge.getAddress());
       expect(contractBalance).to.equal(
@@ -466,10 +467,10 @@ describe("GunL2Bridge", function () {
     it("Should reject withdrawal with insufficient contract balance", async function () {
       // First, deposit some ETH
       await bridge.connect(user1).deposit({ value: DEPOSIT_AMOUNT });
-      
+
       // Get current balance
       const currentBalance = await ethers.provider.getBalance(await bridge.getAddress());
-      
+
       // Create a withdrawal for more than available
       const largeWithdrawal = {
         user: user1.address,
@@ -484,13 +485,13 @@ describe("GunL2Bridge", function () {
       await bridge.connect(relay1).submitBatch(newRoot);
 
       await expect(
-        bridge.connect(user1).withdraw(largeWithdrawal.amount, largeWithdrawal.nonce, largeProof)
+        bridge.connect(user1).withdraw(largeWithdrawal.amount, largeWithdrawal.nonce, 2, largeProof)
       ).to.be.revertedWith("GunL2Bridge: Insufficient contract balance");
     });
 
     it("Should reject zero amount withdrawal", async function () {
       await expect(
-        bridge.connect(user1).withdraw(0, withdrawal1.nonce, proof1)
+        bridge.connect(user1).withdraw(0, withdrawal1.nonce, 1, proof1)
       ).to.be.revertedWith("GunL2Bridge: Invalid amount");
     });
 
@@ -499,7 +500,7 @@ describe("GunL2Bridge", function () {
         await bridge.isWithdrawalProcessed(user1.address, withdrawal1.amount, withdrawal1.nonce)
       ).to.be.false;
 
-      await bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, proof1);
+      await bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, proof1);
 
       expect(
         await bridge.isWithdrawalProcessed(user1.address, withdrawal1.amount, withdrawal1.nonce)
@@ -510,7 +511,7 @@ describe("GunL2Bridge", function () {
       await bridge.connect(owner).pause();
 
       await expect(
-        bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, proof1)
+        bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, proof1)
       ).to.be.revertedWithCustomError(bridge, "EnforcedPause");
     });
   });
@@ -532,7 +533,7 @@ describe("GunL2Bridge", function () {
       await bridge.connect(relay1).submitBatch(root);
 
       await expect(
-        bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, proof)
+        bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, 1, proof)
       ).to.emit(bridge, "Withdrawal");
     });
 
@@ -560,6 +561,7 @@ describe("GunL2Bridge", function () {
           bridge.connect(await ethers.getSigner(withdrawal.user)).withdraw(
             withdrawal.amount,
             withdrawal.nonce,
+            1,
             proof
           )
         ).to.emit(bridge, "Withdrawal");
@@ -582,7 +584,7 @@ describe("GunL2Bridge", function () {
       await bridge.connect(relay1).submitBatch(root);
 
       await expect(
-        bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, proof)
+        bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, 1, proof)
       ).to.emit(bridge, "Withdrawal");
     });
   });
@@ -727,7 +729,7 @@ describe("GunL2Bridge", function () {
       await bridge.connect(relay1).submitBatch(root);
 
       await expect(
-        bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, proof)
+        bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, 1, proof)
       ).to.emit(bridge, "Withdrawal");
     });
 
@@ -748,7 +750,7 @@ describe("GunL2Bridge", function () {
       await bridge.connect(relay1).submitBatch(root);
 
       await expect(
-        bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, proof)
+        bridge.connect(user1).withdraw(withdrawal.amount, withdrawal.nonce, 1, proof)
       ).to.emit(bridge, "Withdrawal");
     });
 
@@ -788,10 +790,48 @@ describe("GunL2Bridge", function () {
           bridge.connect(await ethers.getSigner(withdrawal.user)).withdraw(
             withdrawal.amount,
             withdrawal.nonce,
+            1,
             proof
           )
         ).to.emit(bridge, "Withdrawal");
       }
+    });
+    it("Should allow withdrawals from previous batches (regression test)", async function () {
+      // 1. Setup batch 1
+      await bridge.connect(user1).deposit({ value: DEPOSIT_AMOUNT });
+      const withdrawal1 = { user: user1.address, amount: WITHDRAW_AMOUNT, nonce: 1n };
+      const leaf1 = computeLeaf(withdrawal1.user, withdrawal1.amount, withdrawal1.nonce);
+      const { root: root1, proofs: proofs1 } = buildMerkleTree([leaf1]);
+      await bridge.connect(relay1).submitBatch(root1);
+      const proof1 = proofs1.get(leaf1) || [];
+
+      expect(await bridge.currentBatchId()).to.equal(1);
+
+      // 2. Setup batch 2 (new state)
+      await bridge.connect(user2).deposit({ value: DEPOSIT_AMOUNT });
+      const withdrawal2 = { user: user2.address, amount: WITHDRAW_AMOUNT, nonce: 1n };
+      const leaf2 = computeLeaf(withdrawal2.user, withdrawal2.amount, withdrawal2.nonce);
+      // Let's say batch 2 contains BOTH withdrawal1 (unclaimed) and withdrawal2?
+      // Or just withdrawal2?
+      // In a real rollup, the state root *accumulates*. But our bridge verifyProof just checks inclusion in THAT root.
+      // If we submit a NEW root, it might essentially fork the history if not careful.
+      // But here we are testing the ability to withdraw against an OLD root.
+      const { root: root2, proofs: proofs2 } = buildMerkleTree([leaf2]);
+      await bridge.connect(relay1).submitBatch(root2);
+      const proof2 = proofs2.get(leaf2) || [];
+
+      expect(await bridge.currentBatchId()).to.equal(2);
+
+      // 3. Withdraw from Batch 1 (Historical)
+      // This would fail in the old contract because currentStateRoot would be root2
+      await expect(
+        bridge.connect(user1).withdraw(withdrawal1.amount, withdrawal1.nonce, 1, proof1)
+      ).to.emit(bridge, "Withdrawal");
+
+      // 4. Withdraw from Batch 2
+      await expect(
+        bridge.connect(user2).withdraw(withdrawal2.amount, withdrawal2.nonce, 2, proof2)
+      ).to.emit(bridge, "Withdrawal");
     });
   });
 });

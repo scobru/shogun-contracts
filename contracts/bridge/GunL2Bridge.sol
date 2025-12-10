@@ -60,6 +60,10 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
     /// @dev Leaf = keccak256(abi.encodePacked(user, amount, nonce))
     mapping(bytes32 => bool) public processedWithdrawals;
 
+    /// @notice Historical batch roots (batchId => stateRoot)
+    /// @dev Allows users to withdraw from previous batches even if new ones are submitted
+    mapping(uint256 => bytes32) public batchRoots;
+
     // =========================================== Modifiers ===========================================
 
     /// @notice Only sequencer or registered relay can submit batches
@@ -117,6 +121,7 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
         require(_newRoot != bytes32(0), "GunL2Bridge: Invalid root");
         currentStateRoot = _newRoot;
         currentBatchId++;
+        batchRoots[currentBatchId] = _newRoot;
         emit BatchSubmitted(currentBatchId, _newRoot);
     }
 
@@ -133,6 +138,7 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
     function withdraw(
         uint256 amount,
         uint256 nonce,
+        uint256 batchId,
         bytes32[] calldata proof
     ) external nonReentrant whenNotPaused {
         require(amount > 0, "GunL2Bridge: Invalid amount");
@@ -144,9 +150,12 @@ contract GunL2Bridge is Ownable, ReentrancyGuard, Pausable {
         // 2. Check anti-replay: ensure this leaf hasn't been used before
         require(!processedWithdrawals[leaf], "GunL2Bridge: Withdrawal already processed");
 
-        // 3. Verify Merkle proof: leaf must be part of currentStateRoot
+        // 3. Verify Merkle proof: leaf must be part of the root for the specified batch
+        bytes32 root = batchRoots[batchId];
+        require(root != bytes32(0), "GunL2Bridge: Invalid batch ID");
+        
         require(
-            verifyProof(proof, currentStateRoot, leaf),
+            verifyProof(proof, root, leaf),
             "GunL2Bridge: Invalid Merkle proof"
         );
 
