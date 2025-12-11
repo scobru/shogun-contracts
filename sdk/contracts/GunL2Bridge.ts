@@ -30,13 +30,14 @@ export class GunL2Bridge extends BaseContract {
   /**
    * Submit a new batch with updated state root (only sequencer or registered relay)
    * @param stateRoot Merkle root of the current L2 state
+   * @param handledForceWithdrawals Array of force withdrawal hashes included in this batch
    * @returns Transaction receipt
    */
-  async submitBatch(stateRoot: string) {
+  async submitBatch(stateRoot: string, handledForceWithdrawals: string[] = []) {
     if (!this.signer) {
       throw new Error('Signer required for submitBatch');
     }
-    return await this.contract.submitBatch(stateRoot);
+    return await this.contract.submitBatch(stateRoot, handledForceWithdrawals);
   }
 
   /**
