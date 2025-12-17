@@ -1,6 +1,6 @@
 {
   "name": "shogun-contracts-sdk",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Lightweight Shogun SDK - only essential dependencies for using the SDK without hardhat and other heavy packages",
   "author": "Shogun",
   "license": "MIT",
