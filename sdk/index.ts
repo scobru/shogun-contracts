@@ -5,6 +5,8 @@ import { DataPostRegistry } from './contracts/DataPostRegistry.js';
 import { DataSaleEscrowFactory } from './contracts/DataSaleEscrowFactory.js';
 import { StealthPool } from './contracts/StealthPool.js';
 import { GunL2Bridge } from './contracts/GunL2Bridge.js';
+import { OracleFeedRegistry } from './contracts/OracleFeedRegistry.js';
+import { ShogunPriceOracle } from './contracts/ShogunPriceOracle.js';
 import { getContractDeployment, getAvailableChainIds, isChainSupported } from './config.js';
 import type { SDKConfig } from './types.js';
 
@@ -84,6 +86,20 @@ export class ShogunSDK {
    */
   getGunL2Bridge(): GunL2Bridge {
     return new GunL2Bridge(this.provider, this.signer, this.chainId);
+  }
+
+  /**
+   * Get OracleFeedRegistry contract instance
+   */
+  getOracleFeedRegistry(): OracleFeedRegistry {
+    return new OracleFeedRegistry(this.provider, this.signer, this.chainId);
+  }
+
+  /**
+   * Get ShogunPriceOracle contract instance
+   */
+  getShogunPriceOracle(): ShogunPriceOracle {
+    return new ShogunPriceOracle(this.provider, this.signer, this.chainId);
   }
 
   /**

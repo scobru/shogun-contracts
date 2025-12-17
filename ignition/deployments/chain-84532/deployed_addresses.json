@@ -3,5 +3,7 @@
   "RelayRegistry#ShogunRelayRegistry": "0x8B88258923bad2d634e533Cb6405d4022CfF320f",
   "DeployProtocol#DataSaleEscrowFactory": "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D",
   "DeployProtocol#GunL2Bridge": "0x0F52c90C5704E2aB9cec56eE2C06dD86602988A0",
-  "DeployProtocol#StorageDealRegistry": "0x1D7E662FA5C7c4166E2740B590aC014458582302"
+  "DeployProtocol#StorageDealRegistry": "0x1D7E662FA5C7c4166E2740B590aC014458582302",
+  "OracleFeedRegistry#OracleFeedRegistry": "0x0f3349A2A0d876e4e6bbf0B79ACBe59e65E0D9E4",
+  "ShogunPriceOracle#ShogunPriceOracle": "0x5A656594f203F0e405B88898c7b3cF2e8EA522a6"
 }

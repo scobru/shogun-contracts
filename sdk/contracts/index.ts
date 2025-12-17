@@ -5,4 +5,6 @@ export { DataPostRegistry } from './DataPostRegistry.js';
 export { DataSaleEscrowFactory } from './DataSaleEscrowFactory.js';
 export { StealthPool } from './StealthPool.js';
 export { GunL2Bridge } from './GunL2Bridge.js';
-
+export { OracleFeedRegistry, OraclePacketSigner, OracleDataType } from './OracleFeedRegistry.js';
+export { ShogunPriceOracle } from './ShogunPriceOracle.js';
+export type { OracleFeedInfo, OraclePacket } from './OracleFeedRegistry.js';

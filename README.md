@@ -35,6 +35,11 @@ The project consists of five main contract categories:
 - **IPCMFactory.sol**: Factory for managing IPCM (IPFS Content Management) instances
 - **ipcm.sol**: Contract for managing encrypted data on IPFS
 
+### Oracle (`/contracts/oracle/`)
+
+- **ShogunOracle.sol**: Abstract base contract for Trustus-based oracle data verification (EIP-712)
+- **OracleFeedRegistry.sol**: Registry for relay oracle data feeds with pricing and schema support
+
 ## Smart Contracts
 
 ### ShogunRelayRegistry
@@ -179,6 +184,58 @@ Factory contract for managing IPFS Content Management instances.
 - Deploy IPCM instances
 - Manage encrypted data on IPFS
 - Owner-controlled access
+
+### ShogunOracle
+
+Abstract base contract for Trustus-based oracle data verification. Enables relays to provide signed off-chain data for on-chain consumption.
+
+**Key Features:**
+
+- EIP-712 signature verification
+- Relay registry integration (only active relays can sign)
+- Packet expiration (deadline-based)
+- Feed ID verification
+
+**Core Functions:**
+
+- `verifyOraclePacket(feedId, packet)`: Modifier to verify signed oracle packets
+- `getPacketSigner(packet)`: Recover signer address from packet
+- `DOMAIN_SEPARATOR()`: EIP-712 domain separator
+
+### OracleFeedRegistry
+
+Registry for oracle data feeds provided by Shogun relays. Allows relays to advertise available data feeds with pricing.
+
+**Key Features:**
+
+- Generic data type support (PRICE, STRING, JSON, BYTES, CUSTOM)
+- Per-feed pricing in USDC
+- Schema definition for payload decoding
+- Multi-relay support (same feed name, different relays)
+
+**Core Functions:**
+
+- `registerFeed(name, dataType, schema, price, updateFreq)`: Register a new feed
+- `updateFeed(feedId, newPrice, active)`: Update feed pricing/status
+- `deactivateFeed(feedId)`: Deactivate a feed
+- `getRelayFeeds(relay)`: Get all feeds for a relay
+- `isFeedActive(relay, feedId)`: Check if feed exists and is active
+
+**Data Types:**
+
+| Type | Value | Description |
+|------|-------|-------------|
+| PRICE | 0 | Simple price value (uint256) |
+| STRING | 1 | String data |
+| JSON | 2 | JSON-encoded data |
+| BYTES | 3 | Raw bytes |
+| CUSTOM | 4 | Custom ABI-encoded data |
+
+**Deployment:**
+
+```bash
+npx hardhat run scripts/deploy-oracle.ts --network baseSepolia
+```
 
 ## Technology Stack
 
