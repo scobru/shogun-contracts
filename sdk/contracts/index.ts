@@ -7,4 +7,5 @@ export { StealthPool } from './StealthPool.js';
 export { GunL2Bridge } from './GunL2Bridge.js';
 export { OracleFeedRegistry, OraclePacketSigner, OracleDataType } from './OracleFeedRegistry.js';
 export { ShogunPriceOracle } from './ShogunPriceOracle.js';
+export { ShogunPaidOracle } from './ShogunPaidOracle.js';
 export type { OracleFeedInfo, OraclePacket } from './OracleFeedRegistry.js';

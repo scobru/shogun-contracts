@@ -7,6 +7,7 @@ import { StealthPool } from './contracts/StealthPool.js';
 import { GunL2Bridge } from './contracts/GunL2Bridge.js';
 import { OracleFeedRegistry } from './contracts/OracleFeedRegistry.js';
 import { ShogunPriceOracle } from './contracts/ShogunPriceOracle.js';
+import { ShogunPaidOracle } from './contracts/ShogunPaidOracle.js';
 import { getContractDeployment, getAvailableChainIds, isChainSupported } from './config.js';
 import type { SDKConfig } from './types.js';
 
@@ -100,6 +101,13 @@ export class ShogunSDK {
    */
   getShogunPriceOracle(): ShogunPriceOracle {
     return new ShogunPriceOracle(this.provider, this.signer, this.chainId);
+  }
+
+  /**
+   * Get ShogunPaidOracle contract instance (oracle with on-chain payment)
+   */
+  getShogunPaidOracle(): ShogunPaidOracle {
+    return new ShogunPaidOracle(this.provider, this.signer, this.chainId);
   }
 
   /**
