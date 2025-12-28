@@ -4,7 +4,6 @@ import { StorageDealRegistry } from './contracts/StorageDealRegistry.js';
 import { DataPostRegistry } from './contracts/DataPostRegistry.js';
 import { DataSaleEscrowFactory } from './contracts/DataSaleEscrowFactory.js';
 import { StealthPool } from './contracts/StealthPool.js';
-import { GunL2Bridge } from './contracts/GunL2Bridge.js';
 import { getContractDeployment, getAvailableChainIds, isChainSupported } from './config.js';
 import type { SDKConfig } from './types.js';
 
@@ -77,13 +76,6 @@ export class ShogunSDK {
    */
   getStealthPool(): StealthPool {
     return new StealthPool(this.provider, this.signer, this.chainId);
-  }
-
-  /**
-   * Get GunL2Bridge contract instance
-   */
-  getGunL2Bridge(): GunL2Bridge {
-    return new GunL2Bridge(this.provider, this.signer, this.chainId);
   }
 
   /**

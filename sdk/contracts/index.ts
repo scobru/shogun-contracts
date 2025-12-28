@@ -4,5 +4,4 @@ export { StorageDealRegistry } from './StorageDealRegistry.js';
 export { DataPostRegistry } from './DataPostRegistry.js';
 export { DataSaleEscrowFactory } from './DataSaleEscrowFactory.js';
 export { StealthPool } from './StealthPool.js';
-export { GunL2Bridge } from './GunL2Bridge.js';
 

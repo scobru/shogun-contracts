@@ -36,7 +36,6 @@ const CHAIN_ID_TO_NETWORK: { [chainId: string]: string } = {
   // Aggiungi altre chain qui se necessario
 };
 
-// Mappa dei nomi dei contratti deployati ai nomi nel contracts-config.js
 const CONTRACT_NAME_MAP: { [deployedName: string]: string } = {
   "RelayRegistry#ShogunRelayRegistry": "relayRegistry",
   "DeployProtocol#StorageDealRegistry": "storageDealRegistry",
@@ -44,9 +43,6 @@ const CONTRACT_NAME_MAP: { [deployedName: string]: string } = {
   "DataPostRegistry#DataPostRegistry": "dataPostRegistry",
   "DeployProtocol#DataSaleEscrowFactory": "dataSaleEscrowFactory",
   "DeployAll#DataSaleEscrowFactory": "dataSaleEscrowFactory",
-  "GunL2Bridge#GunL2Bridge": "gunL2Bridge",
-  "DeployAll#GunL2Bridge": "gunL2Bridge",
-  "DeployProtocol#GunL2Bridge": "gunL2Bridge",
 };
 
 function loadExistingDeployments(): DeploymentsFile {
@@ -224,7 +220,6 @@ interface ContractsConfig {
     storageDealRegistry: string | null;
     dataPostRegistry: string | null;
     dataSaleEscrowFactory: string | null;
-    gunL2Bridge?: string | null;
     usdc: string;
     rpc: string;
     explorer: string;

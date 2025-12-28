@@ -13,7 +13,6 @@ import { ethers, network } from "hardhat";
  * 4. StorageDealRegistry
  * 5. SmartWalletFactory
  * 6. StealthKeyRegistry + PayamentForwarder
- * 7. BridgeDex
  * 
  * Verify commands are printed after deployment.
  */
@@ -45,7 +44,6 @@ interface DeploymentInfo {
     smartWalletFactory?: string;
     stealthKeyRegistry?: string;
     paymentForwarder?: string;
-    bridgeDex?: string;
   };
   deployedAt: string;
 }
@@ -80,7 +78,7 @@ async function main() {
   };
 
   // Step 1: Deploy ShogunRelayRegistry
-  console.log("\n[1/7] Deploying ShogunRelayRegistry...");
+  console.log("\n[1/6] Deploying ShogunRelayRegistry...");
   const ShogunRelayRegistry = await ethers.getContractFactory("ShogunRelayRegistry");
   const relayRegistry = await ShogunRelayRegistry.deploy(
     usdcAddress,
@@ -94,7 +92,7 @@ async function main() {
   console.log(`✅ ShogunRelayRegistry deployed to: ${relayRegistryAddress}`);
 
   // Step 2: Deploy DataPostRegistry
-  console.log("\n[2/7] Deploying DataPostRegistry...");
+  console.log("\n[2/6] Deploying DataPostRegistry...");
   const DataPostRegistry = await ethers.getContractFactory("DataPostRegistry");
   const dataPostRegistry = await DataPostRegistry.deploy();
   await dataPostRegistry.waitForDeployment();
@@ -103,7 +101,7 @@ async function main() {
   console.log(`✅ DataPostRegistry deployed to: ${dataPostRegistryAddress}`);
 
   // Step 3: Deploy DataSaleEscrowFactory
-  console.log("\n[3/7] Deploying DataSaleEscrowFactory...");
+  console.log("\n[3/6] Deploying DataSaleEscrowFactory...");
   const DataSaleEscrowFactory = await ethers.getContractFactory("DataSaleEscrowFactory");
   const dataSaleEscrowFactory = await DataSaleEscrowFactory.deploy(
     usdcAddress,
@@ -116,7 +114,7 @@ async function main() {
   console.log(`✅ DataSaleEscrowFactory deployed to: ${dataSaleEscrowFactoryAddress}`);
 
   // Step 4: Deploy StorageDealRegistry
-  console.log("\n[4/7] Deploying StorageDealRegistry...");
+  console.log("\n[4/6] Deploying StorageDealRegistry...");
   const StorageDealRegistry = await ethers.getContractFactory("StorageDealRegistry");
   const storageDealRegistry = await StorageDealRegistry.deploy(relayRegistryAddress);
   await storageDealRegistry.waitForDeployment();
@@ -125,7 +123,7 @@ async function main() {
   console.log(`✅ StorageDealRegistry deployed to: ${storageDealRegistryAddress}`);
 
   // Step 5: Deploy SmartWalletFactory
-  console.log("\n[5/7] Deploying SmartWalletFactory...");
+  console.log("\n[5/6] Deploying SmartWalletFactory...");
   const SmartWalletFactory = await ethers.getContractFactory("SmartWalletFactory");
   const smartWalletFactory = await SmartWalletFactory.deploy();
   await smartWalletFactory.waitForDeployment();
@@ -134,7 +132,7 @@ async function main() {
   console.log(`✅ SmartWalletFactory deployed to: ${smartWalletFactoryAddress}`);
 
   // Step 6: Deploy StealthKeyRegistry and PayamentForwarder
-  console.log("\n[6/7] Deploying StealthKeyRegistry and PayamentForwarder...");
+  console.log("\n[6/6] Deploying StealthKeyRegistry and PayamentForwarder...");
   const StealthKeyRegistry = await ethers.getContractFactory("StealthKeyRegistry");
   const stealthKeyRegistry = await StealthKeyRegistry.deploy();
   await stealthKeyRegistry.waitForDeployment();
@@ -158,14 +156,6 @@ async function main() {
   await paymentForwarder.setTollReceiver(deployer.address);
   console.log(`✅ PayamentForwarder configured`);
 
-  // Step 7: Deploy BridgeDex
-  console.log("\n[7/7] Deploying BridgeDex...");
-  const BridgeDex = await ethers.getContractFactory("BridgeDex");
-  const bridgeDex = await BridgeDex.deploy();
-  await bridgeDex.waitForDeployment();
-  const bridgeDexAddress = await bridgeDex.getAddress();
-  deploymentInfo.contracts.bridgeDex = bridgeDexAddress;
-  console.log(`✅ BridgeDex deployed to: ${bridgeDexAddress}`);
 
   // Print verification commands
   console.log("\n" + "=".repeat(60));
@@ -191,9 +181,7 @@ async function main() {
   
   console.log(`\n# PayamentForwarder:`);
   console.log(`npx hardhat verify --network ${network.name} ${paymentForwarderAddress} ${TOLL.toString()} ${deployer.address} ${deployer.address}`);
-  
-  console.log(`\n# BridgeDex:`);
-  console.log(`npx hardhat verify --network ${network.name} ${bridgeDexAddress}`);
+
 
   // Print deployment summary
   console.log("\n" + "=".repeat(60));
