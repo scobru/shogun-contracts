@@ -5,10 +5,11 @@ import { Contract, Signer, Provider } from 'ethers';
  */
 export interface NetworkConfig {
   chainId: number;
-  relayRegistry?: string;
-  storageDealRegistry?: string;
-  dataPostRegistry?: string;
-  dataSaleEscrowFactory?: string;
+  relayRegistry?: string | null;
+  storageDealRegistry?: string | null;
+  dataPostRegistry?: string | null;
+  dataSaleEscrowFactory?: string | null;
+  gunL2Bridge?: string | null;
   usdc?: string;
   rpc: string;
   explorer: string;

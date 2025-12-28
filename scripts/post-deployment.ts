@@ -105,6 +105,9 @@ function generateDeploymentsJson(): void {
       deployments[chainId] = {};
     }
 
+    // Raccogli tutti i contractKey attuali da Ignition per questa chain
+    const currentIgnitionKeys = new Set(Object.keys(addresses));
+    
     // Per ogni contratto deployato
     for (const [contractKey, address] of Object.entries(addresses)) {
       const artifactPath = join(artifactsPath, `${contractKey}.json`);
@@ -147,8 +150,33 @@ function generateDeploymentsJson(): void {
       }
     }
     
-    // IMPORTANTE: I contratti esistenti che non sono più in ignition vengono preservati
-    // Non vengono mai rimossi, solo aggiornati o aggiunti
+    // Rimuovi deployment vecchi che mappano allo stesso contratto ma non sono più in Ignition
+    // Questo risolve il problema dei duplicati (es: GunL2Bridge#GunL2Bridge vs DeployProtocol#GunL2Bridge)
+    const keysToRemove: string[] = [];
+    for (const [existingKey, existingDeployment] of Object.entries(deployments[chainId])) {
+      // Se questo deployment non è più in Ignition
+      if (!currentIgnitionKeys.has(existingKey)) {
+        // Controlla se mappa allo stesso contratto di uno attuale
+        const configKey = CONTRACT_NAME_MAP[existingKey];
+        if (configKey) {
+          // Cerca se c'è un deployment attuale che mappa allo stesso contratto
+          for (const currentKey of currentIgnitionKeys) {
+            const currentConfigKey = CONTRACT_NAME_MAP[currentKey];
+            if (currentConfigKey === configKey && currentKey !== existingKey) {
+              // Trovato un duplicato: il vecchio non è più in Ignition, rimuovilo
+              keysToRemove.push(existingKey);
+              console.log(`🗑️  Rimosso deployment obsoleto: ${chainId} -> ${existingKey} (sostituito da ${currentKey})`);
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // Rimuovi i deployment obsoleti
+    for (const key of keysToRemove) {
+      delete deployments[chainId][key];
+    }
   }
 
   // Scrivi il file deployments.json

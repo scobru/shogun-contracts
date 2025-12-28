@@ -1,7 +1,10 @@
 {
-  "DataPostRegistry#DataPostRegistry": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
-  "RelayRegistry#ShogunRelayRegistry": "0xf5D5561C84B4Dc8676D4223AF3188d40DA42669B",
-  "DeployProtocol#DataSaleEscrowFactory": "0xa9a39816b4c6EF46434892AA49E760dcEBbC8d01",
-  "DeployProtocol#StorageDealRegistry": "0x25035812952B8a8Ca001B85f4E59919D7569566B",
-  "GunL2Bridge#GunL2Bridge": "0x429E4559e154E9F9fb86A9587769E99F65aFc1dE"
+  "DataPostRegistry#DataPostRegistry": "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421",
+  "RelayRegistry#ShogunRelayRegistry": "0x8B88258923bad2d634e533Cb6405d4022CfF320f",
+  "DeployProtocol#DataSaleEscrowFactory": "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D",
+  "DeployProtocol#GunL2Bridge": "0x0F52c90C5704E2aB9cec56eE2C06dD86602988A0",
+  "DeployProtocol#StorageDealRegistry": "0x1D7E662FA5C7c4166E2740B590aC014458582302",
+  "OracleFeedRegistry#OracleFeedRegistry": "0x0f3349A2A0d876e4e6bbf0B79ACBe59e65E0D9E4",
+  "ShogunPriceOracle#ShogunPriceOracle": "0x5A656594f203F0e405B88898c7b3cF2e8EA522a6",
+  "ShogunPaidOracle#ShogunPaidOracle": "0xAC00A7E9a49DD5F2b3733270F5254b9827145c82"
 }

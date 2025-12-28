@@ -4,20 +4,20 @@
  * Centralized configuration file for all contract addresses across networks.
  * This file should be kept in sync with actual deployments.
  * 
- * Last updated: 2025-12-08
+ * Last updated: 2025-12-10
  */
 
 export const CONTRACTS_CONFIG = {
   "baseSepolia": {
     "chainId": 84532,
-    "relayRegistry": "0xf5D5561C84B4Dc8676D4223AF3188d40DA42669B",
-    "storageDealRegistry": "0x25035812952B8a8Ca001B85f4E59919D7569566B",
-    "dataPostRegistry": "0x609e5De69B764e7A62aa28C97eC0162BA8Fb6aF2",
-    "dataSaleEscrowFactory": "0xa9a39816b4c6EF46434892AA49E760dcEBbC8d01",
+    "relayRegistry": "0x8B88258923bad2d634e533Cb6405d4022CfF320f",
+    "storageDealRegistry": "0x1D7E662FA5C7c4166E2740B590aC014458582302",
+    "dataPostRegistry": "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421",
+    "dataSaleEscrowFactory": "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D",
     "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     "rpc": "https://sepolia.base.org",
     "explorer": "https://sepolia.basescan.org",
-    "gunL2Bridge": "0x429E4559e154E9F9fb86A9587769E99F65aFc1dE"
+    "gunL2Bridge": "0x0F52c90C5704E2aB9cec56eE2C06dD86602988A0"
   },
   "base": {
     "chainId": 8453,

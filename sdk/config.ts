@@ -13,20 +13,13 @@ export function getContractDeployment(
   const chainDeployments = deployments[chainIdStr];
   if (!chainDeployments) return null;
 
-  // Try different naming patterns
+  // Try different naming patterns (in order of preference)
   const patterns = [
-    `${contractName}#${contractName}`,
-    `RelayRegistry#${contractName}`,
-    `DeployProtocol#${contractName}`,
-    `DeployAll#${contractName}`,
-    `Stealth#${contractName}`,
-    `Recovery#${contractName}`,
-    `Security#${contractName}`,
-    `Relay#${contractName}`,
-    `Database#${contractName}`,
-    `IPFS#${contractName}`,
-    `HashLayer#${contractName}`,
-    contractName
+    `DeployProtocol#${contractName}`, // Preferred: from deployProtocol module
+    `DeployAll#${contractName}`,      // Alternative: from deployAll module
+    `${contractName}#${contractName}`, // Direct deployment
+    `RelayRegistry#${contractName}`,   // Legacy: if deployed via RelayRegistry module
+    contractName                       // Fallback: direct name match
   ];
 
   for (const pattern of patterns) {
@@ -55,4 +48,3 @@ export function getAvailableChainIds(): string[] {
 export function isChainSupported(chainId: number | string): boolean {
   return String(chainId) in (DEPLOYMENTS as Record<string, unknown>);
 }
-

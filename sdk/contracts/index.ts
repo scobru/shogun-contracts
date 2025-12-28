@@ -4,4 +4,7 @@ export { StorageDealRegistry } from './StorageDealRegistry.js';
 export { DataPostRegistry } from './DataPostRegistry.js';
 export { DataSaleEscrowFactory } from './DataSaleEscrowFactory.js';
 export { StealthPool } from './StealthPool.js';
-
+export { OracleFeedRegistry, OraclePacketSigner, OracleDataType } from './OracleFeedRegistry.js';
+export { ShogunPriceOracle } from './ShogunPriceOracle.js';
+export { ShogunPaidOracle } from './ShogunPaidOracle.js';
+export type { OracleFeedInfo, OraclePacket } from './OracleFeedRegistry.js';

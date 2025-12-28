@@ -160,11 +160,41 @@ Classe principale per interagire con i contratti.
 - `getDataPostRegistry()`: Restituisce un'istanza di `DataPostRegistry`
 - `getDataSaleEscrowFactory()`: Restituisce un'istanza di `DataSaleEscrowFactory`
 - `getStealthPool()`: Restituisce un'istanza di `StealthPool`
+- `getOracleFeedRegistry()`: Restituisce un'istanza di `OracleFeedRegistry`
 - `getContractDeployment(contractName)`: Ottiene informazioni sul deployment di un contratto
 - `getChainId()`: Restituisce il chain ID corrente
 - `getProvider()`: Restituisce il provider
 - `getSigner()`: Restituisce il signer (se disponibile)
 - `setSigner(signer)`: Imposta un nuovo signer
+
+### Oracle Feed Registry
+
+```typescript
+import { OracleFeedRegistry, OraclePacketSigner, OracleDataType } from 'shogun-contracts/sdk';
+
+const oracleRegistry = sdk.getOracleFeedRegistry();
+
+// Registrare un feed (da un relay attivo)
+await oracleRegistry.registerFeed(
+  'ETH/USD',
+  OracleDataType.PRICE,
+  '(uint256)',
+  BigInt('1000000'), // 1 USDC
+  60 // update ogni 60 secondi
+);
+
+// Ottenere i feed di un relay
+const feeds = await oracleRegistry.getRelayFeeds('0x...');
+
+// Firmare un pacchetto oracle (lato relay)
+const signer = new OraclePacketSigner(
+  'PRIVATE_KEY',
+  84532, // chainId
+  '0x...' // oracle contract address
+);
+
+const packet = await signer.signPacket('ETH/USD', 3500_00000000n, '(uint256)');
+```
 
 ### Utility Functions
 
