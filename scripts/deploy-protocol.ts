@@ -12,7 +12,7 @@ import { ethers, network } from "hardhat";
  * 3. DataSaleEscrowFactory
  * 4. StorageDealRegistry
  * 
- * Excludes: BridgeDex, SmartWallet, StealthAddress
+ * Excludes: SmartWallet, StealthAddress
  * 
  * Verify commands are printed after deployment.
  */

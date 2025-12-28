@@ -151,7 +151,7 @@ function generateDeploymentsJson(): void {
     }
     
     // Rimuovi deployment vecchi che mappano allo stesso contratto ma non sono più in Ignition
-    // Questo risolve il problema dei duplicati (es: GunL2Bridge#GunL2Bridge vs DeployProtocol#GunL2Bridge)
+    // Questo risolve il problema dei duplicati
     const keysToRemove: string[] = [];
     for (const [existingKey, existingDeployment] of Object.entries(deployments[chainId])) {
       // Se questo deployment non è più in Ignition
