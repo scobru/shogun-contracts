@@ -1,11 +1,12 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { DataSaleEscrow, DataPostRegistry, ShogunRelayRegistry } from "../typechain-types";
+import { DataSaleEscrow, DataPostRegistry, ShogunRelayRegistry, DataSaleEscrowFactory } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("DataSaleEscrow", function () {
   let escrow: DataSaleEscrow;
+  let factory: DataSaleEscrowFactory;
   let postRegistry: DataPostRegistry;
   let relayRegistry: ShogunRelayRegistry;
   let mockUSDC: any;
@@ -61,17 +62,33 @@ describe("DataSaleEscrow", function () {
     );
     postId = await getPostIdFromEvent(tx, postRegistry);
 
-    // Deploy escrow
-    const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-    escrow = await DataSaleEscrow.deploy(
+    // Deploy factory
+    const DataSaleEscrowFactory = await ethers.getContractFactory("DataSaleEscrowFactory");
+    factory = await DataSaleEscrowFactory.deploy(
       await mockUSDC.getAddress(),
       await relayRegistry.getAddress(),
       await postRegistry.getAddress()
     );
-    await escrow.waitForDeployment();
+    await factory.waitForDeployment();
 
-    // Initialize escrow
-    await escrow.initialize(postId, seller.address, buyer.address, COUNTDOWN_DURATION);
+    // Create escrow via factory
+    const txEscrow = await factory.connect(buyer).createEscrow(postId, seller.address, COUNTDOWN_DURATION);
+    const receipt = await txEscrow.wait();
+    if (!receipt) throw new Error("Transaction receipt not found");
+
+    const event = receipt.logs
+      .map((log: any) => {
+        try {
+          return factory.interface.parseLog(log);
+        } catch {
+          return null;
+        }
+      })
+      .find((parsed: any) => parsed && parsed.name === "EscrowCreated");
+
+    if (!event) throw new Error("EscrowCreated event not found");
+
+    escrow = await ethers.getContractAt("DataSaleEscrow", event.args.escrow);
 
     // Mint USDC to buyer
     await mockUSDC.mint(buyer.address, ethers.parseUnits("1000", 6));
@@ -101,30 +118,18 @@ describe("DataSaleEscrow", function () {
     });
 
     it("Should fail if post not found", async function () {
-      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await NewEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
-
       await expect(
-        newEscrow.initialize(ethers.id("fake-post"), seller.address, buyer.address, COUNTDOWN_DURATION)
-      ).to.be.revertedWithCustomError(newEscrow, "DataPostNotFound");
+        factory.connect(buyer).createEscrow(ethers.id("fake-post"), seller.address, COUNTDOWN_DURATION)
+      ).to.be.revertedWith("Post not found");
     });
 
     it("Should fail if post is not active", async function () {
       // Deactivate post
       await postRegistry.connect(seller).deactivatePost(postId);
 
-      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await NewEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
+      await expect(
+        factory.connect(buyer).createEscrow(postId, seller.address, COUNTDOWN_DURATION)
+      ).to.be.revertedWith("Post not active");
 
       // Reactivate for proper setup
       await postRegistry.connect(seller).publishPost(
@@ -213,14 +218,16 @@ describe("DataSaleEscrow", function () {
       );
       const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
-      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await NewEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
-      await newEscrow.initialize(newPostId, seller.address, buyer.address, COUNTDOWN_DURATION);
+      const txEscrow = await factory.connect(buyer).createEscrow(newPostId, seller.address, COUNTDOWN_DURATION);
+      const receipt = await txEscrow.wait();
+      if (!receipt) throw new Error("Receipt not found");
+      const event = receipt.logs
+        .map((log: any) => {
+          try { return factory.interface.parseLog(log); } catch { return null; }
+        })
+        .find((parsed: any) => parsed && parsed.name === "EscrowCreated");
+
+      const newEscrow = await ethers.getContractAt("DataSaleEscrow", event.args.escrow);
 
       await expect(
         newEscrow.connect(seller).submitData(encryptedSymKeyHash)
@@ -306,14 +313,17 @@ describe("DataSaleEscrow", function () {
       );
       const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
-      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await NewEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
-      await newEscrow.initialize(newPostId, seller.address, buyer.address, COUNTDOWN_DURATION);
+      const txEscrow = await factory.connect(buyer).createEscrow(newPostId, seller.address, COUNTDOWN_DURATION);
+      const receipt = await txEscrow.wait();
+      if (!receipt) throw new Error("Receipt not found");
+      const event = receipt.logs
+        .map((log: any) => {
+          try { return factory.interface.parseLog(log); } catch { return null; }
+        })
+        .find((parsed: any) => parsed && parsed.name === "EscrowCreated");
+
+      const newEscrow = await ethers.getContractAt("DataSaleEscrow", event.args.escrow);
+
       await mockUSDC.connect(buyer).approve(await newEscrow.getAddress(), ethers.MaxUint256);
       await newEscrow.connect(buyer).depositPayment();
 
@@ -443,15 +453,17 @@ describe("DataSaleEscrow", function () {
       );
       relayPostId = await getPostIdFromEvent(tx, postRegistry);
 
-      // Deploy and initialize escrow with relay seller
-      const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      relayEscrow = await DataSaleEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await relayEscrow.waitForDeployment();
-      await relayEscrow.initialize(relayPostId, relaySeller.address, buyer.address, COUNTDOWN_DURATION);
+      // Create escrow with relay seller via factory
+      const txEscrow = await factory.connect(buyer).createEscrow(relayPostId, relaySeller.address, COUNTDOWN_DURATION);
+      const receipt = await txEscrow.wait();
+      if (!receipt) throw new Error("Receipt not found");
+      const event = receipt.logs
+        .map((log: any) => {
+          try { return factory.interface.parseLog(log); } catch { return null; }
+        })
+        .find((parsed: any) => parsed && parsed.name === "EscrowCreated");
+
+      relayEscrow = await ethers.getContractAt("DataSaleEscrow", event.args.escrow);
 
       // Mint and approve USDC for buyer (enough for payment + griefing cost)
       await mockUSDC.mint(buyer.address, ethers.parseUnits("1000", 6));
@@ -499,14 +511,16 @@ describe("DataSaleEscrow", function () {
       const testPostId = await getPostIdFromEvent(tx, postRegistry);
 
       // Create new escrow
-      const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const testEscrow = await DataSaleEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await testEscrow.waitForDeployment();
-      await testEscrow.initialize(testPostId, relaySeller.address, buyer.address, COUNTDOWN_DURATION);
+      const txEscrow = await factory.connect(buyer).createEscrow(testPostId, relaySeller.address, COUNTDOWN_DURATION);
+      const receipt = await txEscrow.wait();
+      if (!receipt) throw new Error("Receipt not found");
+      const event = receipt.logs
+        .map((log: any) => {
+          try { return factory.interface.parseLog(log); } catch { return null; }
+        })
+        .find((parsed: any) => parsed && parsed.name === "EscrowCreated");
+
+      const testEscrow = await ethers.getContractAt("DataSaleEscrow", event.args.escrow);
       
       // Approve escrow to spend USDC
       await mockUSDC.connect(buyer).approve(await testEscrow.getAddress(), ethers.MaxUint256);
@@ -565,15 +579,17 @@ describe("DataSaleEscrow", function () {
       );
       userPostId = await getPostIdFromEvent(tx, postRegistry);
 
-      // Deploy and initialize escrow with user seller
-      const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      userEscrow = await DataSaleEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await userEscrow.waitForDeployment();
-      await userEscrow.initialize(userPostId, userSeller.address, buyer.address, COUNTDOWN_DURATION);
+      // Create escrow with user seller via factory
+      const txEscrow = await factory.connect(buyer).createEscrow(userPostId, userSeller.address, COUNTDOWN_DURATION);
+      const receipt = await txEscrow.wait();
+      if (!receipt) throw new Error("Receipt not found");
+      const event = receipt.logs
+        .map((log: any) => {
+          try { return factory.interface.parseLog(log); } catch { return null; }
+        })
+        .find((parsed: any) => parsed && parsed.name === "EscrowCreated");
+
+      userEscrow = await ethers.getContractAt("DataSaleEscrow", event.args.escrow);
 
       // Mint and approve USDC for buyer (enough for payment + griefing cost)
       await mockUSDC.mint(buyer.address, ethers.parseUnits("1000", 6));
@@ -636,14 +652,16 @@ describe("DataSaleEscrow", function () {
       const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
       // Create escrow
-      const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await DataSaleEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
-      await newEscrow.initialize(newPostId, newUser.address, buyer.address, COUNTDOWN_DURATION);
+      const txEscrow = await factory.connect(buyer).createEscrow(newPostId, newUser.address, COUNTDOWN_DURATION);
+      const receipt = await txEscrow.wait();
+      if (!receipt) throw new Error("Receipt not found");
+      const event = receipt.logs
+        .map((log: any) => {
+          try { return factory.interface.parseLog(log); } catch { return null; }
+        })
+        .find((parsed: any) => parsed && parsed.name === "EscrowCreated");
+
+      const newEscrow = await ethers.getContractAt("DataSaleEscrow", event.args.escrow);
 
       await mockUSDC.connect(buyer).approve(await newEscrow.getAddress(), ethers.MaxUint256);
       await newEscrow.connect(buyer).depositPayment();
