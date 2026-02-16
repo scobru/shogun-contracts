@@ -135,6 +135,21 @@ describe("DataSaleEscrow", function () {
         PRICE
       );
     });
+
+    it("Should fail if duration too long", async function () {
+      const MAX_UINT32 = 4294967295;
+      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
+      const newEscrow = await NewEscrow.deploy(
+        await mockUSDC.getAddress(),
+        await relayRegistry.getAddress(),
+        await postRegistry.getAddress()
+      );
+      await newEscrow.waitForDeployment();
+
+      await expect(
+        newEscrow.initialize(postId, seller.address, buyer.address, MAX_UINT32 + 1)
+      ).to.be.revertedWithCustomError(newEscrow, "DurationTooLong");
+    });
   });
 
   describe("Payment Deposit", function () {
