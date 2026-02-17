@@ -63,9 +63,6 @@ contract DataSaleEscrow is ReentrancyGuard {
     /// @notice Escrow information
     EscrowInfo public escrow;
 
-    /// @notice Buyer payment deposited
-    uint256 public buyerPayment;
-
     /// @notice Whether seller is a relay (checked during initialization)
     bool public sellerIsRelay;
 
@@ -120,6 +117,7 @@ contract DataSaleEscrow is ReentrancyGuard {
     error CountdownNotExpired(); // Legacy error name (kept for compatibility)
     error CountdownExpired(); // Countdown has expired, seller can no longer submit data
     error InvalidProofHash();
+    error AlreadyInitialized();
 
     // ========================================= Constructor ========================================
 
@@ -150,7 +148,7 @@ contract DataSaleEscrow is ReentrancyGuard {
         uint256 _countdownDuration
     ) external {
         // Can only initialize once
-        require(escrow.createdAt == 0, "Already initialized");
+        if (escrow.createdAt != 0) revert AlreadyInitialized();
 
         // Get post info
         DataPostRegistry.DataPost memory post = postRegistry.getPost(_postId);
@@ -202,9 +200,10 @@ contract DataSaleEscrow is ReentrancyGuard {
 
         uint256 amount = escrow.priceUSDC;
         paymentToken.safeTransferFrom(msg.sender, address(this), amount);
-        buyerPayment = amount;
         escrow.status = EscrowStatus.ACTIVE;
-        escrow.countdownEnd = block.timestamp + escrow.countdownDuration;
+        unchecked {
+            escrow.countdownEnd = block.timestamp + escrow.countdownDuration;
+        }
 
         emit PaymentDeposited(msg.sender, amount);
     }
@@ -218,8 +217,7 @@ contract DataSaleEscrow is ReentrancyGuard {
         if (escrow.status != EscrowStatus.ACTIVE) revert EscrowNotActive();
         if (escrow.encryptedSymKeyHash != bytes32(0)) revert EscrowNotPending(); // Data already submitted
 
-        uint256 refund = buyerPayment;
-        buyerPayment = 0;
+        uint256 refund = escrow.priceUSDC;
         escrow.status = EscrowStatus.CANCELLED;
 
         paymentToken.safeTransfer(escrow.buyer, refund);
@@ -236,8 +234,7 @@ contract DataSaleEscrow is ReentrancyGuard {
         if (escrow.status != EscrowStatus.DATA_SUBMITTED) revert EscrowNotActive();
         if (escrow.encryptedSymKeyHash == bytes32(0)) revert EscrowNotActive();
 
-        uint256 amount = buyerPayment;
-        buyerPayment = 0;
+        uint256 amount = escrow.priceUSDC;
         escrow.status = EscrowStatus.COMPLETED;
 
         paymentToken.safeTransfer(escrow.seller, amount);
@@ -262,6 +259,8 @@ contract DataSaleEscrow is ReentrancyGuard {
             revert EscrowNotActive();
         }
 
+        EscrowStatus previousStatus = escrow.status;
+
         // Mark escrow as disputed
         escrow.status = EscrowStatus.DISPUTED;
 
@@ -283,9 +282,12 @@ contract DataSaleEscrow is ReentrancyGuard {
         }
 
         // Refund buyer payment (full amount - buyer will pay griefing cost separately)
-        uint256 refundAmount = buyerPayment;
+        uint256 refundAmount = 0;
+        if (previousStatus == EscrowStatus.ACTIVE || previousStatus == EscrowStatus.DATA_SUBMITTED) {
+            refundAmount = escrow.priceUSDC;
+        }
+
         if (refundAmount > 0) {
-            buyerPayment = 0;
             paymentToken.safeTransfer(escrow.buyer, refundAmount);
         }
 
@@ -370,6 +372,17 @@ contract DataSaleEscrow is ReentrancyGuard {
      */
     function isCountdownExpired() external view returns (bool) {
         return block.timestamp > escrow.countdownEnd && escrow.countdownEnd > 0;
+    }
+
+    /**
+     * @notice Get buyer payment deposited
+     * @return Amount deposited
+     */
+    function buyerPayment() external view returns (uint256) {
+        if (escrow.status == EscrowStatus.ACTIVE || escrow.status == EscrowStatus.DATA_SUBMITTED) {
+            return escrow.priceUSDC;
+        }
+        return 0;
     }
 }
 

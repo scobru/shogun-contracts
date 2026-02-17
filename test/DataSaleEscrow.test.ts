@@ -97,7 +97,7 @@ describe("DataSaleEscrow", function () {
     it("Should fail to initialize twice", async function () {
       await expect(
         escrow.initialize(postId, seller.address, buyer.address, COUNTDOWN_DURATION)
-      ).to.be.revertedWith("Already initialized");
+      ).to.be.revertedWithCustomError(escrow, "AlreadyInitialized");
     });
 
     it("Should fail if post not found", async function () {
