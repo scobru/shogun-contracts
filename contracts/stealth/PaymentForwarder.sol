@@ -43,6 +43,9 @@ contract PayamentForwarder is Ownable {
   /// @notice Token payments pending withdrawal; stealth address => token address => amount
   mapping(address => mapping(address => uint256)) public tokenPayments;
 
+  /// @notice Nonces for withdrawal signatures to prevent replay attacks
+  mapping(address => uint256) public nonces;
+
   // ======================================= Setup & Admin ========================================
 
   /**
@@ -264,6 +267,10 @@ contract PayamentForwarder is Ownable {
 
     uint256 _withdrawalAmount = _amount - _sponsorFee;
     delete tokenPayments[_stealthAddr][_tokenAddr];
+
+    // Increment nonce to prevent replay attacks
+    nonces[_stealthAddr]++;
+
     emit TokenWithdrawal(_stealthAddr, _acceptor, _withdrawalAmount, _tokenAddr);
 
     SafeERC20.safeTransfer(IERC20(_tokenAddr), _acceptor, _withdrawalAmount);
@@ -312,7 +319,7 @@ contract PayamentForwarder is Ownable {
         abi.encodePacked(
           "\x19Ethereum Signed Message:\n32",
           keccak256(
-            abi.encode(_chainId, address(this), _acceptor, _tokenAddr, _sponsor, _sponsorFee, address(_hook), _data)
+            abi.encode(_chainId, address(this), _acceptor, _tokenAddr, _sponsor, _sponsorFee, address(_hook), _data, nonces[_stealthAddr])
           )
         )
       );
