@@ -79,6 +79,15 @@ describe("DataSaleEscrowFactory", function () {
       const paymentToken = await templateEscrow.paymentToken();
       expect(paymentToken).to.equal(await mockUSDC.getAddress());
     });
+
+    it("Should prevent initialization of the implementation contract", async function () {
+      const template = await factory.template();
+      const templateEscrow = await ethers.getContractAt("DataSaleEscrow", template);
+
+      await expect(
+        templateEscrow.connect(buyer1).initialize(postId, seller.address, buyer1.address, COUNTDOWN_DURATION)
+      ).to.be.revertedWith("Already initialized");
+    });
   });
 
   describe("Create Escrow", function () {

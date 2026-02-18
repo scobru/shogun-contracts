@@ -1,11 +1,12 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { DataSaleEscrow, DataPostRegistry, ShogunRelayRegistry } from "../typechain-types";
+import { DataSaleEscrow, DataPostRegistry, ShogunRelayRegistry, DataSaleEscrowFactory } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("DataSaleEscrow", function () {
   let escrow: DataSaleEscrow;
+  let factory: DataSaleEscrowFactory;
   let postRegistry: DataPostRegistry;
   let relayRegistry: ShogunRelayRegistry;
   let mockUSDC: any;
@@ -32,8 +33,7 @@ describe("DataSaleEscrow", function () {
     mockUSDC = await MockERC20.deploy("Mock USDC", "USDC", 6);
     await mockUSDC.waitForDeployment();
 
-    // Deploy minimal registry (we can use a minimal implementation for testing)
-    // For now, we'll deploy a minimal version or mock
+    // Deploy registry
     const MIN_STAKE = ethers.parseUnits("100", 6);
     const UNSTAKING_DELAY = 7 * 24 * 60 * 60;
     
@@ -51,6 +51,15 @@ describe("DataSaleEscrow", function () {
     postRegistry = await DataPostRegistry.deploy();
     await postRegistry.waitForDeployment();
 
+    // Deploy Factory
+    const DataSaleEscrowFactory = await ethers.getContractFactory("DataSaleEscrowFactory");
+    factory = await DataSaleEscrowFactory.deploy(
+      await mockUSDC.getAddress(),
+      await relayRegistry.getAddress(),
+      await postRegistry.getAddress()
+    );
+    await factory.waitForDeployment();
+
     // Publish a post
     const tx = await postRegistry.connect(seller).publishPost(
       PROOF_HASH,
@@ -61,17 +70,10 @@ describe("DataSaleEscrow", function () {
     );
     postId = await getPostIdFromEvent(tx, postRegistry);
 
-    // Deploy escrow
-    const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-    escrow = await DataSaleEscrow.deploy(
-      await mockUSDC.getAddress(),
-      await relayRegistry.getAddress(),
-      await postRegistry.getAddress()
-    );
-    await escrow.waitForDeployment();
-
-    // Initialize escrow
-    await escrow.initialize(postId, seller.address, buyer.address, COUNTDOWN_DURATION);
+    // Create escrow via factory
+    const createTx = await factory.connect(buyer).createEscrow(postId, seller.address, COUNTDOWN_DURATION);
+    const escrowAddress = await getEscrowAddressFromEvent(createTx);
+    escrow = await ethers.getContractAt("DataSaleEscrow", escrowAddress);
 
     // Mint USDC to buyer
     await mockUSDC.mint(buyer.address, ethers.parseUnits("1000", 6));
@@ -95,45 +97,31 @@ describe("DataSaleEscrow", function () {
     });
 
     it("Should fail to initialize twice", async function () {
+        // Escrow is already initialized by factory
       await expect(
         escrow.initialize(postId, seller.address, buyer.address, COUNTDOWN_DURATION)
       ).to.be.revertedWith("Already initialized");
     });
 
     it("Should fail if post not found", async function () {
-      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await NewEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
-
+      // Trying to create escrow for fake post via factory
+      // Factory checks: require(post.createdAt != 0, "Post not found");
       await expect(
-        newEscrow.initialize(ethers.id("fake-post"), seller.address, buyer.address, COUNTDOWN_DURATION)
-      ).to.be.revertedWithCustomError(newEscrow, "DataPostNotFound");
+        factory.connect(buyer).createEscrow(ethers.id("fake-post"), seller.address, COUNTDOWN_DURATION)
+      ).to.be.revertedWith("Post not found");
     });
 
     it("Should fail if post is not active", async function () {
       // Deactivate post
       await postRegistry.connect(seller).deactivatePost(postId);
 
-      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await NewEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
+      // Factory checks: require(post.active, "Post not active");
+      await expect(
+        factory.connect(buyer).createEscrow(postId, seller.address, COUNTDOWN_DURATION)
+      ).to.be.revertedWith("Post not active");
 
-      // Reactivate for proper setup
-      await postRegistry.connect(seller).publishPost(
-        PROOF_HASH,
-        ENCRYPTED_DATA_HASH,
-        DESCRIPTION,
-        CATEGORY,
-        PRICE
-      );
+      // Reactivate for proper setup - though we don't need to as tests are isolated by beforeEach?
+      // Wait, hardhat network persists? No, beforeEach redeploys.
     });
   });
 
@@ -213,14 +201,9 @@ describe("DataSaleEscrow", function () {
       );
       const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
-      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await NewEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
-      await newEscrow.initialize(newPostId, seller.address, buyer.address, COUNTDOWN_DURATION);
+      const createTx = await factory.connect(buyer).createEscrow(newPostId, seller.address, COUNTDOWN_DURATION);
+      const escrowAddress = await getEscrowAddressFromEvent(createTx);
+      const newEscrow = await ethers.getContractAt("DataSaleEscrow", escrowAddress);
 
       await expect(
         newEscrow.connect(seller).submitData(encryptedSymKeyHash)
@@ -232,7 +215,7 @@ describe("DataSaleEscrow", function () {
       
       // Get countdown end time
       const escrowInfo = await escrow.getEscrowInfo();
-      const countdownEnd = Number(escrowInfo.countdownEnd);
+      // countdownEnd is set when payment deposited
       
       // Fast forward time past countdown deadline
       await time.increase(COUNTDOWN_DURATION + 1);
@@ -306,14 +289,10 @@ describe("DataSaleEscrow", function () {
       );
       const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
-      const NewEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await NewEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
-      await newEscrow.initialize(newPostId, seller.address, buyer.address, COUNTDOWN_DURATION);
+      const createTx = await factory.connect(buyer).createEscrow(newPostId, seller.address, COUNTDOWN_DURATION);
+      const escrowAddress = await getEscrowAddressFromEvent(createTx);
+      const newEscrow = await ethers.getContractAt("DataSaleEscrow", escrowAddress);
+
       await mockUSDC.connect(buyer).approve(await newEscrow.getAddress(), ethers.MaxUint256);
       await newEscrow.connect(buyer).depositPayment();
 
@@ -443,15 +422,10 @@ describe("DataSaleEscrow", function () {
       );
       relayPostId = await getPostIdFromEvent(tx, postRegistry);
 
-      // Deploy and initialize escrow with relay seller
-      const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      relayEscrow = await DataSaleEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await relayEscrow.waitForDeployment();
-      await relayEscrow.initialize(relayPostId, relaySeller.address, buyer.address, COUNTDOWN_DURATION);
+      // Create escrow with relay seller
+      const createTx = await factory.connect(buyer).createEscrow(relayPostId, relaySeller.address, COUNTDOWN_DURATION);
+      const escrowAddress = await getEscrowAddressFromEvent(createTx);
+      relayEscrow = await ethers.getContractAt("DataSaleEscrow", escrowAddress);
 
       // Mint and approve USDC for buyer (enough for payment + griefing cost)
       await mockUSDC.mint(buyer.address, ethers.parseUnits("1000", 6));
@@ -499,14 +473,9 @@ describe("DataSaleEscrow", function () {
       const testPostId = await getPostIdFromEvent(tx, postRegistry);
 
       // Create new escrow
-      const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const testEscrow = await DataSaleEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await testEscrow.waitForDeployment();
-      await testEscrow.initialize(testPostId, relaySeller.address, buyer.address, COUNTDOWN_DURATION);
+      const createTx = await factory.connect(buyer).createEscrow(testPostId, relaySeller.address, COUNTDOWN_DURATION);
+      const escrowAddress = await getEscrowAddressFromEvent(createTx);
+      const testEscrow = await ethers.getContractAt("DataSaleEscrow", escrowAddress);
       
       // Approve escrow to spend USDC
       await mockUSDC.connect(buyer).approve(await testEscrow.getAddress(), ethers.MaxUint256);
@@ -565,15 +534,10 @@ describe("DataSaleEscrow", function () {
       );
       userPostId = await getPostIdFromEvent(tx, postRegistry);
 
-      // Deploy and initialize escrow with user seller
-      const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      userEscrow = await DataSaleEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await userEscrow.waitForDeployment();
-      await userEscrow.initialize(userPostId, userSeller.address, buyer.address, COUNTDOWN_DURATION);
+      // Create escrow with user seller
+      const createTx = await factory.connect(buyer).createEscrow(userPostId, userSeller.address, COUNTDOWN_DURATION);
+      const escrowAddress = await getEscrowAddressFromEvent(createTx);
+      userEscrow = await ethers.getContractAt("DataSaleEscrow", escrowAddress);
 
       // Mint and approve USDC for buyer (enough for payment + griefing cost)
       await mockUSDC.mint(buyer.address, ethers.parseUnits("1000", 6));
@@ -636,14 +600,9 @@ describe("DataSaleEscrow", function () {
       const newPostId = await getPostIdFromEvent(tx, postRegistry);
 
       // Create escrow
-      const DataSaleEscrow = await ethers.getContractFactory("DataSaleEscrow");
-      const newEscrow = await DataSaleEscrow.deploy(
-        await mockUSDC.getAddress(),
-        await relayRegistry.getAddress(),
-        await postRegistry.getAddress()
-      );
-      await newEscrow.waitForDeployment();
-      await newEscrow.initialize(newPostId, newUser.address, buyer.address, COUNTDOWN_DURATION);
+      const createTx = await factory.connect(buyer).createEscrow(newPostId, newUser.address, COUNTDOWN_DURATION);
+      const escrowAddress = await getEscrowAddressFromEvent(createTx);
+      const newEscrow = await ethers.getContractAt("DataSaleEscrow", escrowAddress);
 
       await mockUSDC.connect(buyer).approve(await newEscrow.getAddress(), ethers.MaxUint256);
       await newEscrow.connect(buyer).depositPayment();
@@ -710,5 +669,29 @@ describe("DataSaleEscrow", function () {
     const event = events[0];
     return event.args.postId;
   }
-});
 
+  async function getEscrowAddressFromEvent(tx: any): Promise<string> {
+    const receipt = await tx.wait();
+    const event = receipt.logs.find(
+      (log: any) => {
+        try {
+          const eventSig = ethers.id("EscrowCreated(address,bytes32,address,address,uint256)");
+          return log.topics[0] === eventSig;
+        } catch {
+          return false;
+        }
+      }
+    );
+
+    if (!event) {
+      throw new Error("EscrowCreated event not found");
+    }
+
+    if (event.topics.length > 1) {
+      // Address is in topics[1], need to pad to 32 bytes
+      return ethers.getAddress(ethers.dataSlice(event.topics[1], 12, 32));
+    }
+
+    throw new Error("Could not extract escrow address from event");
+  }
+});

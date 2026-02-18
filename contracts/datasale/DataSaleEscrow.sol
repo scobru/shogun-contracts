@@ -131,6 +131,9 @@ contract DataSaleEscrow is ReentrancyGuard {
         paymentToken = IERC20(_paymentToken);
         registry = ShogunRelayRegistry(_registry);
         postRegistry = DataPostRegistry(_postRegistry);
+
+        // Prevent initialization of implementation contract
+        escrow.createdAt = 1;
     }
 
     // =========================================== Initialization ==================================
