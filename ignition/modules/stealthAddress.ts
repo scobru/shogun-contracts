@@ -8,7 +8,7 @@ const Stealth = buildModule("Stealth", (m) => {
   // Deploy StealthKeyRegistry per la gestione delle chiavi stealth
   const stealthKeyRegistry = m.contract("StealthKeyRegistry");
 
-  const paymentForwarder = m.contract("PayamentForwarder", [
+  const paymentForwarder = m.contract("PaymentForwarder", [
     parseEther("0.001"), // toll (0.001 ETH per transazione)
     m.getAccount(0), // tollCollector (primo signer)
     m.getAccount(0), // tollReceiver (primo signer)

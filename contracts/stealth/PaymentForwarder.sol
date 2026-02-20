@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IPaymentForwarderHookReceiver.sol";
 
-contract PayamentForwarder is Ownable {
+contract PaymentForwarder is Ownable {
   // =========================================== Events ============================================
 
   /// @notice Emitted when a payment is sent

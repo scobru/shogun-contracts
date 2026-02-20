@@ -12,7 +12,7 @@ import { ethers, network } from "hardhat";
  * 3. DataSaleEscrowFactory
  * 4. StorageDealRegistry
  * 5. SmartWalletFactory
- * 6. StealthKeyRegistry + PayamentForwarder
+ * 6. StealthKeyRegistry + PaymentForwarder
  * 
  * Verify commands are printed after deployment.
  */
@@ -29,7 +29,7 @@ const MIN_STAKE = ethers.parseUnits("100", 6); // 100 USDC (6 decimals)
 const UNSTAKING_DELAY = 7 * 24 * 60 * 60; // 7 days in seconds
 const TREASURY = "0xA6591dCDff5C7616110b4f84207184aef7835048"; // Treasury address (or zero for burn)
 
-// Configuration for PayamentForwarder
+// Configuration for PaymentForwarder
 const TOLL = ethers.parseEther("0.001"); // 0.001 ETH per transaction
 
 interface DeploymentInfo {
@@ -131,8 +131,8 @@ async function main() {
   deploymentInfo.contracts.smartWalletFactory = smartWalletFactoryAddress;
   console.log(`✅ SmartWalletFactory deployed to: ${smartWalletFactoryAddress}`);
 
-  // Step 6: Deploy StealthKeyRegistry and PayamentForwarder
-  console.log("\n[6/6] Deploying StealthKeyRegistry and PayamentForwarder...");
+  // Step 6: Deploy StealthKeyRegistry and PaymentForwarder
+  console.log("\n[6/6] Deploying StealthKeyRegistry and PaymentForwarder...");
   const StealthKeyRegistry = await ethers.getContractFactory("StealthKeyRegistry");
   const stealthKeyRegistry = await StealthKeyRegistry.deploy();
   await stealthKeyRegistry.waitForDeployment();
@@ -140,8 +140,8 @@ async function main() {
   deploymentInfo.contracts.stealthKeyRegistry = stealthKeyRegistryAddress;
   console.log(`✅ StealthKeyRegistry deployed to: ${stealthKeyRegistryAddress}`);
 
-  const PayamentForwarder = await ethers.getContractFactory("PayamentForwarder");
-  const paymentForwarder = await PayamentForwarder.deploy(
+  const PaymentForwarder = await ethers.getContractFactory("PaymentForwarder");
+  const paymentForwarder = await PaymentForwarder.deploy(
     TOLL,
     deployer.address, // tollCollector
     deployer.address  // tollReceiver
@@ -149,12 +149,12 @@ async function main() {
   await paymentForwarder.waitForDeployment();
   const paymentForwarderAddress = await paymentForwarder.getAddress();
   deploymentInfo.contracts.paymentForwarder = paymentForwarderAddress;
-  console.log(`✅ PayamentForwarder deployed to: ${paymentForwarderAddress}`);
+  console.log(`✅ PaymentForwarder deployed to: ${paymentForwarderAddress}`);
 
-  // Configure PayamentForwarder
+  // Configure PaymentForwarder
   await paymentForwarder.setTollCollector(deployer.address);
   await paymentForwarder.setTollReceiver(deployer.address);
-  console.log(`✅ PayamentForwarder configured`);
+  console.log(`✅ PaymentForwarder configured`);
 
 
   // Print verification commands
@@ -179,7 +179,7 @@ async function main() {
   console.log(`\n# StealthKeyRegistry:`);
   console.log(`npx hardhat verify --network ${network.name} ${stealthKeyRegistryAddress}`);
   
-  console.log(`\n# PayamentForwarder:`);
+  console.log(`\n# PaymentForwarder:`);
   console.log(`npx hardhat verify --network ${network.name} ${paymentForwarderAddress} ${TOLL.toString()} ${deployer.address} ${deployer.address}`);
 
 

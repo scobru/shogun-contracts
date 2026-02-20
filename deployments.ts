@@ -6397,7 +6397,7 @@ export const DEPLOYMENTS = {
         }
       ]
     },
-    "Stealth#PayamentForwarder": {
+    "Stealth#PaymentForwarder": {
       "address": "0x4CF1F3B14B9652d47226d74dEA94eeb116840B94",
       "abi": [
         {
