@@ -5,6 +5,8 @@ export { DataPostRegistry } from './DataPostRegistry.js';
 export { DataSaleEscrowFactory } from './DataSaleEscrowFactory.js';
 export { StealthPool } from './StealthPool.js';
 export { OracleFeedRegistry, OraclePacketSigner, OracleDataType } from './OracleFeedRegistry.js';
+export { StealthKeyRegistry } from './StealthKeyRegistry.js';
+export { PaymentForwarder } from './PaymentForwarder.js';
 export { ShogunPriceOracle } from './ShogunPriceOracle.js';
 export { ShogunPaidOracle } from './ShogunPaidOracle.js';
 export type { OracleFeedInfo, OraclePacket } from './OracleFeedRegistry.js';

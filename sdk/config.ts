@@ -17,6 +17,7 @@ export function getContractDeployment(
   const patterns = [
     `DeployProtocol#${contractName}`, // Preferred: from deployProtocol module
     `DeployAll#${contractName}`,      // Alternative: from deployAll module
+    `Stealth#${contractName}`,        // Stealth module deployments
     `${contractName}#${contractName}`, // Direct deployment
     `RelayRegistry#${contractName}`,   // Legacy: if deployed via RelayRegistry module
     contractName                       // Fallback: direct name match

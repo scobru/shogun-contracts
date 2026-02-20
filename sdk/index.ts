@@ -5,6 +5,8 @@ import { DataPostRegistry } from './contracts/DataPostRegistry.js';
 import { DataSaleEscrowFactory } from './contracts/DataSaleEscrowFactory.js';
 import { StealthPool } from './contracts/StealthPool.js';
 import { OracleFeedRegistry } from './contracts/OracleFeedRegistry.js';
+import { StealthKeyRegistry } from './contracts/StealthKeyRegistry.js';
+import { PaymentForwarder } from './contracts/PaymentForwarder.js';
 import { ShogunPriceOracle } from './contracts/ShogunPriceOracle.js';
 import { ShogunPaidOracle } from './contracts/ShogunPaidOracle.js';
 import { getContractDeployment, getAvailableChainIds, isChainSupported } from './config.js';
@@ -79,6 +81,20 @@ export class ShogunSDK {
    */
   getStealthPool(): StealthPool {
     return new StealthPool(this.provider, this.signer, this.chainId);
+  }
+
+  /**
+   * Get Stealth Key Registry contract instance
+   */
+  getStealthKeyRegistry(): StealthKeyRegistry {
+    return new StealthKeyRegistry(this.provider, this.signer, this.chainId);
+  }
+
+  /**
+   * Get Payment Forwarder contract instance
+   */
+  getPaymentForwarder(): PaymentForwarder {
+    return new PaymentForwarder(this.provider, this.signer, this.chainId);
   }
 
   /**
