@@ -115,6 +115,7 @@ contract StealthKeyRegistry {
     string calldata _viewingPublicKey,
     string calldata _spendingPublicKey
   ) internal {
+    require(_registrant != address(0), "StealthKeyRegistry: Invalid registrant");
     // Validate input - ensure keys are not empty
     require(
       bytes(_viewingPublicKey).length > 0 && bytes(_spendingPublicKey).length > 0,

@@ -3105,7 +3105,7 @@ export declare const DEPLOYMENTS: {
                 readonly type: "function";
             }];
         };
-        readonly "Stealth#PayamentForwarder": {
+        readonly "Stealth#PaymentForwarder": {
             readonly address: "0x4CF1F3B14B9652d47226d74dEA94eeb116840B94";
             readonly abi: readonly [{
                 readonly inputs: readonly [{

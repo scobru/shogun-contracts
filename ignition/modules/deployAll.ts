@@ -18,7 +18,7 @@ import StealthModule from "./stealthAddress";
  * 3. DataSaleEscrowFactory (depends on RelayRegistry and DataPostRegistry)
  * 4. StorageDealRegistry (depends on RelayRegistry)
  * 5. SmartWalletFactory (no dependencies)
- * 6. StealthKeyRegistry + PayamentForwarder (no dependencies)
+ * 6. StealthKeyRegistry + PaymentForwarder (no dependencies)
  * 
  * USDC Addresses:
  * - Base Sepolia: 0x036CbD53842c5426634e7929541eC2318f3dCF7e

@@ -150,7 +150,7 @@ contract DataSaleEscrow is ReentrancyGuard {
         registry = ShogunRelayRegistry(_registry);
         postRegistry = DataPostRegistry(_postRegistry);
         // Disable initialization on implementation contract
-        escrow.createdAt = 1;
+        _escrow.createdAt = 1;
     }
 
     // =========================================== Initialization ==================================
