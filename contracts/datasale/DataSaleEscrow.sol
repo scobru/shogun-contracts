@@ -173,10 +173,18 @@ contract DataSaleEscrow is ReentrancyGuard {
         require(_escrow.createdAt == 0, "Already initialized");
 
         // Get post info
-        DataPostRegistry.DataPost memory post = postRegistry.getPost(_postId);
-        if (post.createdAt == 0) revert DataPostNotFound();
-        if (!post.active) revert DataPostNotActive();
-        if (post.seller != _seller) revert NotSeller();
+        (
+            address seller,
+            uint256 priceUSDC,
+            bytes32 proofHash,
+            string memory encryptedDataHash,
+            bool active,
+            uint256 createdAt
+        ) = postRegistry.getPostSaleInfo(_postId);
+
+        if (createdAt == 0) revert DataPostNotFound();
+        if (!active) revert DataPostNotActive();
+        if (seller != _seller) revert NotSeller();
         if (_countdownDuration > type(uint32).max) revert InvalidAmount();
 
         // Check if seller is a relay or user (for griefing mechanism)
@@ -202,13 +210,13 @@ contract DataSaleEscrow is ReentrancyGuard {
             buyer: _buyer,
             countdownEnd: 0,
             countdownDuration: uint32(_countdownDuration),
-            priceUSDC: post.priceUSDC,
-            proofHash: post.proofHash,
+            priceUSDC: priceUSDC,
+            proofHash: proofHash,
             encryptedSymKeyHash: bytes32(0),
-            encryptedDataHash: post.encryptedDataHash
+            encryptedDataHash: encryptedDataHash
         });
 
-        emit EscrowCreated(_postId, _seller, _buyer, post.priceUSDC);
+        emit EscrowCreated(_postId, _seller, _buyer, priceUSDC);
     }
 
     // =========================================== Buyer Functions =================================

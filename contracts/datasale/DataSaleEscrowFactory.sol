@@ -73,11 +73,18 @@ contract DataSaleEscrowFactory {
     ) external returns (address escrow) {
         // Get post to verify it exists
         DataPostRegistry postRegistry = DataSaleEscrow(implementation).postRegistry();
-        DataPostRegistry.DataPost memory post = postRegistry.getPost(_postId);
+        (
+            address seller,
+            uint256 priceUSDC,
+            ,
+            ,
+            bool active,
+            uint256 createdAt
+        ) = postRegistry.getPostSaleInfo(_postId);
         
-        require(post.createdAt != 0, "Post not found");
-        require(post.active, "Post not active");
-        require(post.seller == _seller, "Invalid seller");
+        require(createdAt != 0, "Post not found");
+        require(active, "Post not active");
+        require(seller == _seller, "Invalid seller");
 
         // Create minimal proxy using EIP-1167
         bytes memory bytecode = _generateMinimalProxyBytecode(implementation);
@@ -97,7 +104,7 @@ contract DataSaleEscrowFactory {
         escrowsBySeller[_seller].push(escrow);
         escrowsByPost[_postId].push(escrow);
 
-        emit EscrowCreated(escrow, _postId, _seller, msg.sender, post.priceUSDC);
+        emit EscrowCreated(escrow, _postId, _seller, msg.sender, priceUSDC);
 
         return escrow;
     }
