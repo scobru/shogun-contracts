@@ -294,6 +294,69 @@ describe("DataSaleEscrow", function () {
     });
   });
 
+  describe("Seller Claim", function () {
+    beforeEach(async function () {
+      await escrow.connect(buyer).depositPayment();
+      await escrow.connect(seller).submitData(ethers.id("encrypted-key-123"));
+    });
+
+    it("Should allow seller to claim funds after delay if buyer ghosts", async function () {
+      // Try to claim before delay
+      await expect(
+        escrow.connect(seller).claimPayment()
+      ).to.be.revertedWithCustomError(escrow, "ClaimDelayNotPassed");
+
+      // Fast forward time past delay (14 days)
+      const SELLER_CLAIM_DELAY = 14 * 24 * 60 * 60;
+      await time.increase(SELLER_CLAIM_DELAY + 1);
+
+      const sellerBalanceBefore = await mockUSDC.balanceOf(seller.address);
+
+      await expect(
+        escrow.connect(seller).claimPayment()
+      ).to.emit(escrow, "EscrowCompleted").withArgs(buyer.address, seller.address, PRICE);
+
+      const escrowInfo = await escrow.getEscrowInfo();
+      expect(escrowInfo.status).to.equal(3); // COMPLETED
+
+      const sellerBalanceAfter = await mockUSDC.balanceOf(seller.address);
+      expect(sellerBalanceAfter - sellerBalanceBefore).to.equal(PRICE);
+      expect(await escrow.buyerPayment()).to.equal(0);
+    });
+
+    it("Should fail if not seller", async function () {
+      const SELLER_CLAIM_DELAY = 14 * 24 * 60 * 60;
+      await time.increase(SELLER_CLAIM_DELAY + 1);
+
+      await expect(
+        escrow.connect(buyer).claimPayment()
+      ).to.be.revertedWithCustomError(escrow, "NotSeller");
+    });
+
+    it("Should fail if status is not DATA_SUBMITTED", async function () {
+        // Create a new escrow that is just ACTIVE (not submitted)
+        const tx = await postRegistry.connect(seller).publishPost(
+            PROOF_HASH,
+            ENCRYPTED_DATA_HASH + "claim-test",
+            DESCRIPTION,
+            CATEGORY,
+            PRICE
+        );
+        const newPostId = await getPostIdFromEvent(tx, postRegistry);
+        const newEscrow = await createEscrowViaFactory(factory, newPostId, seller.address, COUNTDOWN_DURATION, buyer);
+
+        await mockUSDC.connect(buyer).approve(await newEscrow.getAddress(), ethers.MaxUint256);
+        await newEscrow.connect(buyer).depositPayment();
+
+        const SELLER_CLAIM_DELAY = 14 * 24 * 60 * 60;
+        await time.increase(SELLER_CLAIM_DELAY + 1);
+
+        await expect(
+            newEscrow.connect(seller).claimPayment()
+        ).to.be.revertedWithCustomError(newEscrow, "EscrowNotActive");
+    });
+  });
+
   describe("Cancellation", function () {
     beforeEach(async function () {
       await escrow.connect(buyer).depositPayment();

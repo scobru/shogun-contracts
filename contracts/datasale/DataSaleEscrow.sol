@@ -39,8 +39,9 @@ contract DataSaleEscrow is ReentrancyGuard {
     struct EscrowInfoStorage {
         bytes32 postId;                 // DataPost ID (32 bytes)
         address seller;                 // Seller address (20 bytes)
-        uint64 createdAt;               // Creation timestamp (8 bytes)
+        uint40 createdAt;               // Creation timestamp (5 bytes)
         EscrowStatus status;            // Current status (1 byte)
+        uint40 submittedAt;             // Data submission timestamp (5 bytes)
 
         address buyer;                  // Buyer address (20 bytes)
         uint64 countdownEnd;            // Countdown end (8 bytes)
@@ -77,6 +78,9 @@ contract DataSaleEscrow is ReentrancyGuard {
 
     /// @notice DataPost registry
     DataPostRegistry public immutable postRegistry;
+
+    /// @notice Delay before seller can claim payment if buyer is unresponsive (14 days)
+    uint256 public constant SELLER_CLAIM_DELAY = 14 days;
 
     /// @notice Escrow information (internal for optimization)
     EscrowInfoStorage internal _escrow;
@@ -138,6 +142,7 @@ contract DataSaleEscrow is ReentrancyGuard {
     error CountdownNotExpired(); // Legacy error name (kept for compatibility)
     error CountdownExpired(); // Countdown has expired, seller can no longer submit data
     error InvalidProofHash();
+    error ClaimDelayNotPassed();
 
     // ========================================= Constructor ========================================
 
@@ -197,8 +202,9 @@ contract DataSaleEscrow is ReentrancyGuard {
         _escrow = EscrowInfoStorage({
             postId: _postId,
             seller: _seller,
-            createdAt: uint64(block.timestamp),
+            createdAt: uint40(block.timestamp),
             status: EscrowStatus.PENDING_PAYMENT,
+            submittedAt: 0,
             buyer: _buyer,
             countdownEnd: 0,
             countdownDuration: uint32(_countdownDuration),
@@ -371,8 +377,29 @@ contract DataSaleEscrow is ReentrancyGuard {
 
         _escrow.encryptedSymKeyHash = _encryptedSymKeyHash;
         _escrow.status = EscrowStatus.DATA_SUBMITTED;
+        _escrow.submittedAt = uint40(block.timestamp);
 
         emit DataSubmitted(_encryptedSymKeyHash);
+    }
+
+    /**
+     * @notice Seller claims payment if buyer is unresponsive
+     * @dev Can be called by seller after SELLER_CLAIM_DELAY has passed since data submission
+     */
+    function claimPayment() external nonReentrant {
+        if (msg.sender != _escrow.seller) revert NotSeller();
+        if (_escrow.status != EscrowStatus.DATA_SUBMITTED) revert EscrowNotActive();
+        if (block.timestamp <= uint256(_escrow.submittedAt) + SELLER_CLAIM_DELAY) {
+            revert ClaimDelayNotPassed();
+        }
+
+        uint256 amount = buyerPayment;
+        buyerPayment = 0;
+        _escrow.status = EscrowStatus.COMPLETED;
+
+        paymentToken.safeTransfer(_escrow.seller, amount);
+
+        emit EscrowCompleted(_escrow.buyer, _escrow.seller, amount);
     }
 
     // =========================================== View Functions ==================================
