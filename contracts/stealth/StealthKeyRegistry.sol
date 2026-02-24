@@ -32,10 +32,13 @@ contract StealthKeyRegistry {
   /// @dev Domain separator for EIP-712 signatures
   bytes32 public immutable DOMAIN_SEPARATOR;
   
+  /// @dev Mapping from user address to their nonce for replay protection
+  mapping(address => uint256) public nonces;
+
   /// @dev The payload typehash used for EIP-712 signatures
   bytes32 public constant STEALTHKEYS_TYPEHASH =
     keccak256(
-      "StealthKeys(string viewingPublicKey,string spendingPublicKey)"
+      "StealthKeys(string viewingPublicKey,string spendingPublicKey,uint256 nonce)"
     );
 
   /**
@@ -84,6 +87,10 @@ contract StealthKeyRegistry {
     bytes32 _r,
     bytes32 _s
   ) external {
+    // Get current nonce and increment
+    uint256 currentNonce = nonces[_registrant];
+    nonces[_registrant]++;
+
     // Create EIP-712 digest
     bytes32 _digest = keccak256(
       abi.encodePacked(
@@ -93,7 +100,8 @@ contract StealthKeyRegistry {
           abi.encode(
             STEALTHKEYS_TYPEHASH,
             keccak256(bytes(_viewingPublicKey)),
-            keccak256(bytes(_spendingPublicKey))
+            keccak256(bytes(_spendingPublicKey)),
+            currentNonce
           )
         )
       )
