@@ -40,11 +40,11 @@ contract DataSaleEscrow is ReentrancyGuard {
         bytes32 postId;                 // DataPost ID (32 bytes)
         address seller;                 // Seller address (20 bytes)
         uint40 createdAt;               // Creation timestamp (5 bytes)
-        EscrowStatus status;            // Current status (1 byte)
         uint40 submittedAt;             // Data submission timestamp (5 bytes)
 
         address buyer;                  // Buyer address (20 bytes)
-        uint64 countdownEnd;            // Countdown end (8 bytes)
+        EscrowStatus status;            // Current status (1 byte)
+        uint40 countdownEnd;            // Countdown end (5 bytes)
         uint32 countdownDuration;       // Countdown duration (4 bytes)
 
         uint256 priceUSDC;             // Sale price
@@ -239,7 +239,7 @@ contract DataSaleEscrow is ReentrancyGuard {
         paymentToken.safeTransferFrom(msg.sender, address(this), amount);
         buyerPayment = amount;
         _escrow.status = EscrowStatus.ACTIVE;
-        _escrow.countdownEnd = uint64(block.timestamp) + uint64(_escrow.countdownDuration);
+        _escrow.countdownEnd = uint40(block.timestamp) + uint40(_escrow.countdownDuration);
 
         emit PaymentDeposited(msg.sender, amount);
     }
