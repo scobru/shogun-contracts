@@ -204,6 +204,35 @@ contract DataPostRegistry is Ownable, Pausable {
     // =========================================== Discovery ========================================
 
     /**
+     * @notice Get only post info needed for sale escrow (saves gas by skipping description/category)
+     * @param _postId Post ID
+     * @return seller Seller address
+     * @return priceUSDC Price in USDC
+     * @return proofHash Proof hash
+     * @return encryptedDataHash Encrypted data hash
+     * @return active Whether post is active
+     * @return createdAt Creation timestamp
+     */
+    function getPostSaleInfo(bytes32 _postId) external view returns (
+        address seller,
+        uint256 priceUSDC,
+        bytes32 proofHash,
+        string memory encryptedDataHash,
+        bool active,
+        uint256 createdAt
+    ) {
+        DataPost storage post = posts[_postId];
+        return (
+            post.seller,
+            post.priceUSDC,
+            post.proofHash,
+            post.encryptedDataHash,
+            post.active,
+            post.createdAt
+        );
+    }
+
+    /**
      * @notice Get post by ID
      * @param _postId Post ID
      * @return Post information
