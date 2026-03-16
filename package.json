@@ -28,7 +28,7 @@
     "encrypt": "dotenvenc -e .env -o .env.enc",
     "decrypt": "dotenvenc -d .env.enc -o .env",
     "build:sdk": "tsc -p sdk/tsconfig.json",
-    "prepublishOnly": "npm run build:sdk"
+    "prepare": "npm run build:sdk"
   },
   "author": "scobru",
   "license": "MIT",
