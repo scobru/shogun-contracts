@@ -38,11 +38,12 @@ const CHAIN_ID_TO_NETWORK: { [chainId: string]: string } = {
 
 const CONTRACT_NAME_MAP: { [deployedName: string]: string } = {
   "RelayRegistry#ShogunRelayRegistry": "relayRegistry",
-  "DeployProtocol#StorageDealRegistry": "storageDealRegistry",
-  "DeployAll#StorageDealRegistry": "storageDealRegistry",
   "DataPostRegistry#DataPostRegistry": "dataPostRegistry",
   "DeployProtocol#DataSaleEscrowFactory": "dataSaleEscrowFactory",
   "DeployAll#DataSaleEscrowFactory": "dataSaleEscrowFactory",
+  "TuneCampFactory#TuneCampCheckout": "tuneCampCheckout",
+  "TuneCampFactory#TuneCampNFT": "tuneCampNFT",
+  "TuneCampFactory#TuneCampFactory": "tuneCampFactory",
 };
 
 function loadExistingDeployments(): DeploymentsFile {
@@ -245,9 +246,11 @@ interface ContractsConfig {
   [networkName: string]: {
     chainId: number;
     relayRegistry: string | null;
-    storageDealRegistry: string | null;
     dataPostRegistry: string | null;
     dataSaleEscrowFactory: string | null;
+    tuneCampCheckout: string | null;
+    tuneCampNFT: string | null;
+    tuneCampFactory: string | null;
     usdc: string;
     rpc: string;
     explorer: string;

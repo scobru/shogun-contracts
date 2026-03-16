@@ -25,22 +25,22 @@ yarn add shogun-contracts
 ### Configurazione base
 
 ```typescript
-import { ShogunSDK } from 'shogun-contracts/sdk';
-import { JsonRpcProvider, Wallet } from 'ethers';
+import { ShogunSDK } from "shogun-contracts/sdk";
+import { JsonRpcProvider, Wallet } from "ethers";
 
 // Provider senza signer (solo lettura)
-const provider = new JsonRpcProvider('https://sepolia.base.org');
+const provider = new JsonRpcProvider("https://sepolia.base.org");
 const sdk = new ShogunSDK({
   provider,
-  chainId: 84532 // Base Sepolia
+  chainId: 84532, // Base Sepolia
 });
 
 // Con signer (per transazioni)
-const wallet = new Wallet('PRIVATE_KEY', provider);
+const wallet = new Wallet("PRIVATE_KEY", provider);
 const sdkWithSigner = new ShogunSDK({
   provider,
   signer: wallet,
-  chainId: 84532
+  chainId: 84532,
 });
 ```
 
@@ -51,15 +51,15 @@ const relayRegistry = sdk.getRelayRegistry();
 
 // Registrare un relay
 await relayRegistry.registerRelay(
-  'https://relay.example.com',
-  '0x...', // pubkey
-  '0x...', // epub
-  BigInt('1000000000000000000'), // stake amount
-  BigInt('1000') // griefing ratio
+  "https://relay.example.com",
+  "0x...", // pubkey
+  "0x...", // epub
+  BigInt("1000000000000000000"), // stake amount
+  BigInt("1000"), // griefing ratio
 );
 
 // Ottenere informazioni su un relay
-const relayInfo = await relayRegistry.getRelayInfo('0x...');
+const relayInfo = await relayRegistry.getRelayInfo("0x...");
 
 // Ottenere tutti i relay attivi
 const activeRelays = await relayRegistry.getActiveRelays();
@@ -72,20 +72,20 @@ const storageDeal = sdk.getStorageDealRegistry();
 
 // Registrare un nuovo deal
 await storageDeal.registerDeal(
-  '0x...', // dealId
-  '0x...', // client address
-  'Qm...', // CID
+  "0x...", // dealId
+  "0x...", // client address
+  "Qm...", // CID
   BigInt(100), // sizeMB
-  BigInt('1000000'), // priceUSDC (6 decimals)
+  BigInt("1000000"), // priceUSDC (6 decimals)
   BigInt(30), // durationDays
-  BigInt('500000') // clientStake
+  BigInt("500000"), // clientStake
 );
 
 // Ottenere informazioni su un deal
-const deal = await storageDeal.getDeal('0x...');
+const deal = await storageDeal.getDeal("0x...");
 
 // Completare un deal
-await storageDeal.completeDeal('0x...');
+await storageDeal.completeDeal("0x...");
 ```
 
 ### Data Post Registry
@@ -95,18 +95,18 @@ const dataPost = sdk.getDataPostRegistry();
 
 // Pubblicare un nuovo post
 const tx = await dataPost.publishPost(
-  '0x...', // proofHash
-  'Qm...', // encryptedDataHash
-  'Description of the data',
-  'category',
-  BigInt('1000000') // priceUSDC
+  "0x...", // proofHash
+  "Qm...", // encryptedDataHash
+  "Description of the data",
+  "category",
+  BigInt("1000000"), // priceUSDC
 );
 
 // Ottenere tutti i post attivi
 const activePosts = await dataPost.getActivePosts();
 
 // Ottenere post per categoria
-const posts = await dataPost.getPostsByCategory('category');
+const posts = await dataPost.getPostsByCategory("category");
 ```
 
 ### Data Sale Escrow Factory
@@ -116,13 +116,13 @@ const escrowFactory = sdk.getDataSaleEscrowFactory();
 
 // Creare un nuovo escrow
 const escrowAddress = await escrowFactory.createEscrow(
-  '0x...', // postId
-  '0x...', // seller address
-  BigInt(3600) // countdownDuration (seconds)
+  "0x...", // postId
+  "0x...", // seller address
+  BigInt(3600), // countdownDuration (seconds)
 );
 
 // Ottenere escrow per buyer
-const buyerEscrows = await escrowFactory.getEscrowsByBuyer('0x...');
+const buyerEscrows = await escrowFactory.getEscrowsByBuyer("0x...");
 ```
 
 ### Stealth Pool
@@ -132,18 +132,18 @@ const stealthPool = sdk.getStealthPool();
 
 // Registrare un deposito
 await stealthPool.registerDeposit(
-  '0x...', // commitment
-  BigInt('1000000000000000000') // amount
+  "0x...", // commitment
+  BigInt("1000000000000000000"), // amount
 );
 
 // Prelevare
-const merkleProof = await stealthPool.generateMerkleProof('0x...');
+const merkleProof = await stealthPool.generateMerkleProof("0x...");
 await stealthPool.withdraw(
-  '0x...', // commitment
-  '0x...', // nonce
-  '0x...', // recipient
-  BigInt('1000000000000000000'), // amount
-  merkleProof[0] // merkle proof
+  "0x...", // commitment
+  "0x...", // nonce
+  "0x...", // recipient
+  BigInt("1000000000000000000"), // amount
+  merkleProof[0], // merkle proof
 );
 ```
 
@@ -160,7 +160,11 @@ Classe principale per interagire con i contratti.
 - `getDataPostRegistry()`: Restituisce un'istanza di `DataPostRegistry`
 - `getDataSaleEscrowFactory()`: Restituisce un'istanza di `DataSaleEscrowFactory`
 - `getStealthPool()`: Restituisce un'istanza di `StealthPool`
+- `getStealthKeyRegistry()`: Restituisce un'istanza di `StealthKeyRegistry`
+- `getPaymentForwarder()`: Restituisce un'istanza di `PaymentForwarder`
 - `getOracleFeedRegistry()`: Restituisce un'istanza di `OracleFeedRegistry`
+- `getShogunPriceOracle()`: Restituisce un'istanza di `ShogunPriceOracle`
+- `getShogunPaidOracle()`: Restituisce un'istanza di `ShogunPaidOracle`
 - `getContractDeployment(contractName)`: Ottiene informazioni sul deployment di un contratto
 - `getChainId()`: Restituisce il chain ID corrente
 - `getProvider()`: Restituisce il provider
@@ -170,48 +174,52 @@ Classe principale per interagire con i contratti.
 ### Oracle Feed Registry
 
 ```typescript
-import { OracleFeedRegistry, OraclePacketSigner, OracleDataType } from 'shogun-contracts/sdk';
+import {
+  OracleFeedRegistry,
+  OraclePacketSigner,
+  OracleDataType,
+} from "shogun-contracts/sdk";
 
 const oracleRegistry = sdk.getOracleFeedRegistry();
 
 // Registrare un feed (da un relay attivo)
 await oracleRegistry.registerFeed(
-  'ETH/USD',
+  "ETH/USD",
   OracleDataType.PRICE,
-  '(uint256)',
-  BigInt('1000000'), // 1 USDC
-  60 // update ogni 60 secondi
+  "(uint256)",
+  BigInt("1000000"), // 1 USDC
+  60, // update ogni 60 secondi
 );
 
 // Ottenere i feed di un relay
-const feeds = await oracleRegistry.getRelayFeeds('0x...');
+const feeds = await oracleRegistry.getRelayFeeds("0x...");
 
 // Firmare un pacchetto oracle (lato relay)
 const signer = new OraclePacketSigner(
-  'PRIVATE_KEY',
+  "PRIVATE_KEY",
   84532, // chainId
-  '0x...' // oracle contract address
+  "0x...", // oracle contract address
 );
 
-const packet = await signer.signPacket('ETH/USD', 3500_00000000n, '(uint256)');
+const packet = await signer.signPacket("ETH/USD", 3500_00000000n, "(uint256)");
 ```
 
 ### Utility Functions
 
 ```typescript
-import { 
-  getContractDeployment, 
-  getAvailableChainIds, 
-  isChainSupported 
-} from 'shogun-contracts/sdk';
+import {
+  getContractDeployment,
+  getAvailableChainIds,
+  isChainSupported,
+} from "shogun-contracts/sdk";
 
 // Verificare se una chain è supportata
 if (isChainSupported(84532)) {
-  console.log('Chain supported!');
+  console.log("Chain supported!");
 }
 
 // Ottenere deployment info
-const deployment = getContractDeployment(84532, 'ShogunRelayRegistry');
+const deployment = getContractDeployment(84532, "ShogunRelayRegistry");
 
 // Ottenere tutte le chain disponibili
 const chains = getAvailableChainIds();
@@ -231,4 +239,3 @@ const chains = getAvailableChainIds();
 ## Esempi Completi
 
 Vedi la cartella `examples/` per esempi più dettagliati.
-

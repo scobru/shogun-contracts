@@ -11,7 +11,6 @@ import DataPostRegistryModule from "./dataPostRegistry";
  * 1. ShogunRelayRegistry (required by others)
  * 2. DataPostRegistry (required by DataSaleEscrowFactory)
  * 3. DataSaleEscrowFactory (depends on RelayRegistry and DataPostRegistry)
- * 4. StorageDealRegistry (depends on RelayRegistry)
  * 
  * USDC Addresses:
  * - Base Sepolia: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
@@ -41,16 +40,10 @@ const DeployProtocolModule = buildModule("DeployProtocol", (m) => {
     dataPostRegistry.dataPostRegistry,
   ]);
   
-  // Step 4: Deploy StorageDealRegistry (depends on RelayRegistry)
-  const storageDealRegistry = m.contract("StorageDealRegistry", [
-    relayRegistry.relayRegistry,
-  ]);
-
   return {
     relayRegistry: relayRegistry.relayRegistry,
     dataPostRegistry: dataPostRegistry.dataPostRegistry,
     dataSaleEscrowFactory,
-    storageDealRegistry,
   };
 });
 
