@@ -18,4 +18,4 @@ node_modules
 ignition/deployments/chain-31337
 
 # SDK build output
-sdk/dist
+# sdk/dist removed to allow git-based installs without devDependencies
