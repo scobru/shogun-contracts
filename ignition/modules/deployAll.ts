@@ -3,8 +3,6 @@ import { parseEther } from "ethers";
 import RelayRegistryModule from "./relayRegistry";
 import DataPostRegistryModule from "./dataPostRegistry";
 import DataSaleEscrowFactoryModule from "./dataSaleEscrowFactory";
-import StorageDealRegistryModule from "./storageDealRegistry";
-import SmartWalletModule from "./smartWallet";
 import StealthModule from "./stealthAddress";
 
 /**
@@ -16,9 +14,7 @@ import StealthModule from "./stealthAddress";
  * 1. ShogunRelayRegistry (required by others)
  * 2. DataPostRegistry (required by DataSaleEscrowFactory)
  * 3. DataSaleEscrowFactory (depends on RelayRegistry and DataPostRegistry)
- * 4. StorageDealRegistry (depends on RelayRegistry)
- * 5. SmartWalletFactory (no dependencies)
- * 6. StealthKeyRegistry + PaymentForwarder (no dependencies)
+ * 4. StealthKeyRegistry + PaymentForwarder (no dependencies)
  * 
  * USDC Addresses:
  * - Base Sepolia: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
@@ -48,23 +44,13 @@ const DeployAllModule = buildModule("DeployAll", (m) => {
     dataPostRegistry.dataPostRegistry,
   ]);
   
-  // Step 4: Deploy StorageDealRegistry (depends on RelayRegistry)
-  const storageDealRegistry = m.contract("StorageDealRegistry", [
-    relayRegistry.relayRegistry,
-  ]);
-
-  // Step 5: Deploy SmartWalletFactory (no dependencies)
-  const smartWallet = m.useModule(SmartWalletModule);
-
-  // Step 6: Deploy Stealth contracts (no dependencies)
+  // Step 4: Deploy Stealth contracts (no dependencies)
   const stealth = m.useModule(StealthModule);
 
   return {
     relayRegistry: relayRegistry.relayRegistry,
     dataPostRegistry: dataPostRegistry.dataPostRegistry,
     dataSaleEscrowFactory,
-    storageDealRegistry,
-    smartWalletFactory: smartWallet.smartWalletFactory,
     stealthKeyRegistry: stealth.stealthKeyRegistry,
     paymentForwarder: stealth.paymentForwarder,
   };

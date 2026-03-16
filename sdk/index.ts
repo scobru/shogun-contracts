@@ -1,12 +1,12 @@
 import { Provider, Signer } from 'ethers';
 import { RelayRegistry } from './contracts/RelayRegistry.js';
-import { StorageDealRegistry } from './contracts/StorageDealRegistry.js';
 import { DataPostRegistry } from './contracts/DataPostRegistry.js';
 import { DataSaleEscrowFactory } from './contracts/DataSaleEscrowFactory.js';
-import { StealthPool } from './contracts/StealthPool.js';
-import { OracleFeedRegistry } from './contracts/OracleFeedRegistry.js';
-import { ShogunPriceOracle } from './contracts/ShogunPriceOracle.js';
-import { ShogunPaidOracle } from './contracts/ShogunPaidOracle.js';
+import { StealthKeyRegistry } from './contracts/StealthKeyRegistry.js';
+import { PaymentForwarder } from './contracts/PaymentForwarder.js';
+import { TuneCampFactory } from './contracts/TuneCampFactory.js';
+import { TuneCampNFT } from './contracts/TuneCampNFT.js';
+import { TuneCampCheckout } from './contracts/TuneCampCheckout.js';
 import { getContractDeployment, getAvailableChainIds, isChainSupported } from './config.js';
 import type { SDKConfig } from './types.js';
 
@@ -54,13 +54,6 @@ export class ShogunSDK {
   }
 
   /**
-   * Get Storage Deal Registry contract instance
-   */
-  getStorageDealRegistry(): StorageDealRegistry {
-    return new StorageDealRegistry(this.provider, this.signer, this.chainId);
-  }
-
-  /**
    * Get Data Post Registry contract instance
    */
   getDataPostRegistry(): DataPostRegistry {
@@ -75,31 +68,38 @@ export class ShogunSDK {
   }
 
   /**
-   * Get Stealth Pool contract instance
+   * Get Stealth Key Registry contract instance
    */
-  getStealthPool(): StealthPool {
-    return new StealthPool(this.provider, this.signer, this.chainId);
+  getStealthKeyRegistry(): StealthKeyRegistry {
+    return new StealthKeyRegistry(this.provider, this.signer, this.chainId);
   }
 
   /**
-   * Get OracleFeedRegistry contract instance
+   * Get Payment Forwarder contract instance
    */
-  getOracleFeedRegistry(): OracleFeedRegistry {
-    return new OracleFeedRegistry(this.provider, this.signer, this.chainId);
+  getPaymentForwarder(): PaymentForwarder {
+    return new PaymentForwarder(this.provider, this.signer, this.chainId);
   }
 
   /**
-   * Get ShogunPriceOracle contract instance
+   * Get TuneCamp Factory contract instance
    */
-  getShogunPriceOracle(): ShogunPriceOracle {
-    return new ShogunPriceOracle(this.provider, this.signer, this.chainId);
+  getTuneCampFactory(): TuneCampFactory {
+    return new TuneCampFactory(this.provider, this.signer, this.chainId);
   }
 
   /**
-   * Get ShogunPaidOracle contract instance (oracle with on-chain payment)
+   * Get TuneCamp NFT contract instance (unattached to specific proxy)
    */
-  getShogunPaidOracle(): ShogunPaidOracle {
-    return new ShogunPaidOracle(this.provider, this.signer, this.chainId);
+  getTuneCampNFT(): TuneCampNFT {
+    return new TuneCampNFT(this.provider, this.signer, this.chainId);
+  }
+
+  /**
+   * Get TuneCamp Checkout contract instance (unattached to specific proxy)
+   */
+  getTuneCampCheckout(): TuneCampCheckout {
+    return new TuneCampCheckout(this.provider, this.signer, this.chainId);
   }
 
   /**
