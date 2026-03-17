@@ -25,13 +25,13 @@ export class TuneCampCheckout extends BaseContract {
         return await this.contract.purchaseWithETH(trackId, role, quantity, { value });
     }
     /**
-     * Set price for a specific track and role (Admin only)
+     * Set price for a specific track and role (Artist/Admin)
      */
     async setPrice(trackId, role, priceUSDC, priceETH) {
         return await this.contract.setPrice(trackId, role, priceUSDC, priceETH);
     }
     /**
-     * Batch set prices (Admin only)
+     * Batch set prices (Artist/Admin)
      */
     async setPriceBatch(trackIds, roles, pricesUSDC, pricesETH) {
         return await this.contract.setPriceBatch(trackIds, roles, pricesUSDC, pricesETH);

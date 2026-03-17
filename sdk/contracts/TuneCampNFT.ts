@@ -26,7 +26,7 @@ export class TuneCampNFT extends BaseContract {
   }
 
   /**
-   * Register a new track (Admin only)
+   * Register a new track (Artist/Admin)
    */
   async registerTrack(
     trackId: bigint | number,

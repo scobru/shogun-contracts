@@ -22,7 +22,7 @@ export class TuneCampNFT extends BaseContract {
         return this;
     }
     /**
-     * Register a new track (Admin only)
+     * Register a new track (Artist/Admin)
      */
     async registerTrack(trackId, artist, maxLicense, maxOwnership, maxCollectible) {
         return await this.contract.registerTrack(trackId, artist, maxLicense, maxOwnership, maxCollectible);

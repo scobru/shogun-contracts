@@ -16,11 +16,11 @@ export declare class TuneCampCheckout extends BaseContract {
      */
     purchaseWithETH(trackId: bigint | number, role: TokenRole, quantity: bigint | number, value: bigint): Promise<any>;
     /**
-     * Set price for a specific track and role (Admin only)
+     * Set price for a specific track and role (Artist/Admin)
      */
     setPrice(trackId: bigint | number, role: TokenRole, priceUSDC: bigint, priceETH: bigint): Promise<any>;
     /**
-     * Batch set prices (Admin only)
+     * Batch set prices (Artist/Admin)
      */
     setPriceBatch(trackIds: (bigint | number)[], roles: TokenRole[], pricesUSDC: bigint[], pricesETH: bigint[]): Promise<any>;
     /**

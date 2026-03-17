@@ -12,7 +12,7 @@ export declare class TuneCampNFT extends BaseContract {
      */
     attach(address: string): this;
     /**
-     * Register a new track (Admin only)
+     * Register a new track (Artist/Admin)
      */
     registerTrack(trackId: bigint | number, artist: string, maxLicense: bigint | number, maxOwnership: bigint | number, maxCollectible: bigint | number): Promise<any>;
     /**
