@@ -15,6 +15,7 @@ export function getContractDeployment(
 
   // Try different naming patterns (in order of preference)
   const patterns = [
+    `TuneCampFactory#${contractName}`, // TuneCamp factory module deployments
     `DeployProtocol#${contractName}`, // Preferred: from deployProtocol module
     `DeployAll#${contractName}`,      // Alternative: from deployAll module
     `Stealth#${contractName}`,        // Stealth module deployments
