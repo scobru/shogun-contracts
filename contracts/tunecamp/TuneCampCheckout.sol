@@ -149,13 +149,16 @@ contract TuneCampCheckout is Initializable, OwnableUpgradeable, ReentrancyGuard 
         );
     }
 
-    // ─── Admin: prices ───────────────────────────────────────────────────────
+    // ─── Artist/Admin: prices ────────────────────────────────────────────────
     function setPrice(
         uint256 trackId,
         TuneCampNFT.TokenRole role,
         uint256 _priceUSDC,
         uint256 _priceETH
-    ) external onlyOwner {
+    ) external {
+        address artist = _getArtist(trackId);
+        require(msg.sender == owner() || msg.sender == artist, "Not authorized");
+
         priceUSDC[trackId][role] = _priceUSDC;
         priceETH[trackId][role]  = _priceETH;
         emit PriceUpdated(trackId, role, _priceUSDC, _priceETH);
@@ -166,7 +169,7 @@ contract TuneCampCheckout is Initializable, OwnableUpgradeable, ReentrancyGuard 
         TuneCampNFT.TokenRole[]      calldata roles,
         uint256[]                    calldata pricesUSDC,
         uint256[]                    calldata pricesETH
-    ) external onlyOwner {
+    ) external {
         uint256 len = trackIds.length;
         require(
             len == roles.length &&
@@ -175,6 +178,9 @@ contract TuneCampCheckout is Initializable, OwnableUpgradeable, ReentrancyGuard 
             "Array length mismatch"
         );
         for (uint256 i = 0; i < len; i++) {
+            address artist = _getArtist(trackIds[i]);
+            require(msg.sender == owner() || msg.sender == artist, "Not authorized");
+
             priceUSDC[trackIds[i]][roles[i]] = pricesUSDC[i];
             priceETH[trackIds[i]][roles[i]]  = pricesETH[i];
             emit PriceUpdated(trackIds[i], roles[i], pricesUSDC[i], pricesETH[i]);
