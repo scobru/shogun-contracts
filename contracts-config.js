@@ -4,7 +4,7 @@
  * Centralized configuration file for all contract addresses across networks.
  * This file should be kept in sync with actual deployments.
  * 
- * Last updated: 2025-12-10
+ * Last updated: 2026-03-17
  */
 
 export const CONTRACTS_CONFIG = {
@@ -25,9 +25,9 @@ export const CONTRACTS_CONFIG = {
     "relayRegistry": null,
     "dataPostRegistry": null,
     "dataSaleEscrowFactory": null,
-    "tuneCampCheckout": "0x2DBcce651aeeaF083d208cc8362B4fd7e72E380F",
-    "tuneCampNFT": "0x532B0fBEe4d2b259a89982753fFf0E79E468fBce",
-    "tuneCampFactory": "0xC52DEa08b354b62033A683843af6FF550B3F8dED",
+    "tuneCampCheckout": "0xb2Ba5A8d07d52B49e98A19e763b8B329e485f564",
+    "tuneCampNFT": "0x3059D4349B47FA57f1B6D0Ee92e695F4E86A826b",
+    "tuneCampFactory": "0xc9b5A11cF6E8D454f6C0d81c319DE59c4D29cAbd",
     "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     "rpc": "https://mainnet.base.org",
     "explorer": "https://basescan.org"

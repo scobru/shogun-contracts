@@ -1,7 +1,7 @@
 export declare const DEPLOYMENTS: {
     readonly "8453": {
         readonly "TuneCampFactory#TuneCampCheckout": {
-            readonly address: "0x2DBcce651aeeaF083d208cc8362B4fd7e72E380F";
+            readonly address: "0xb2Ba5A8d07d52B49e98A19e763b8B329e485f564";
             readonly abi: readonly [{
                 readonly inputs: readonly [];
                 readonly stateMutability: "nonpayable";
@@ -456,7 +456,7 @@ export declare const DEPLOYMENTS: {
             }];
         };
         readonly "TuneCampFactory#TuneCampNFT": {
-            readonly address: "0x532B0fBEe4d2b259a89982753fFf0E79E468fBce";
+            readonly address: "0x3059D4349B47FA57f1B6D0Ee92e695F4E86A826b";
             readonly abi: readonly [{
                 readonly inputs: readonly [];
                 readonly stateMutability: "nonpayable";
@@ -1198,7 +1198,7 @@ export declare const DEPLOYMENTS: {
             }];
         };
         readonly "TuneCampFactory#TuneCampFactory": {
-            readonly address: "0xC52DEa08b354b62033A683843af6FF550B3F8dED";
+            readonly address: "0xc9b5A11cF6E8D454f6C0d81c319DE59c4D29cAbd";
             readonly abi: readonly [{
                 readonly inputs: readonly [{
                     readonly internalType: "address";

@@ -3,7 +3,7 @@
 export const DEPLOYMENTS = {
     "8453": {
         "TuneCampFactory#TuneCampCheckout": {
-            "address": "0x2DBcce651aeeaF083d208cc8362B4fd7e72E380F",
+            "address": "0xb2Ba5A8d07d52B49e98A19e763b8B329e485f564",
             "abi": [
                 {
                     "inputs": [],
@@ -588,7 +588,7 @@ export const DEPLOYMENTS = {
             ]
         },
         "TuneCampFactory#TuneCampNFT": {
-            "address": "0x532B0fBEe4d2b259a89982753fFf0E79E468fBce",
+            "address": "0x3059D4349B47FA57f1B6D0Ee92e695F4E86A826b",
             "abi": [
                 {
                     "inputs": [],
@@ -1548,7 +1548,7 @@ export const DEPLOYMENTS = {
             ]
         },
         "TuneCampFactory#TuneCampFactory": {
-            "address": "0xC52DEa08b354b62033A683843af6FF550B3F8dED",
+            "address": "0xc9b5A11cF6E8D454f6C0d81c319DE59c4D29cAbd",
             "abi": [
                 {
                     "inputs": [
