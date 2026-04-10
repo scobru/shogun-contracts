@@ -1,5 +1,7 @@
 {
   "TuneCampFactory#TuneCampCheckout": "0xb2Ba5A8d07d52B49e98A19e763b8B329e485f564",
   "TuneCampFactory#TuneCampNFT": "0x3059D4349B47FA57f1B6D0Ee92e695F4E86A826b",
-  "TuneCampFactory#TuneCampFactory": "0xc9b5A11cF6E8D454f6C0d81c319DE59c4D29cAbd"
+  "TuneCampFactory#TuneCampFactory": "0xc9b5A11cF6E8D454f6C0d81c319DE59c4D29cAbd",
+  "Stealth#PaymentForwarder": "0x0bE89b593A6eF044B25802195C634559a7FcBbdF",
+  "Stealth#StealthKeyRegistry": "0x9aD8B62765C528c168d704b89e50069876a29F2C"
 }

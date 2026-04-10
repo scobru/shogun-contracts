@@ -15,26 +15,19 @@ This directory contains Hardhat Ignition modules for deploying Shogun contracts.
 3. **dataSaleEscrowFactory.ts** - Deploys `DataSaleEscrowFactory`
    - Parameters: `paymentToken`, `registry`, `postRegistry`
 
-4. **storageDealRegistry.ts** - Deploys `StorageDealRegistry`
-   - Parameters: `registry` (ShogunRelayRegistry address)
+4. **stealthAddress.ts** - Deploys `StealthKeyRegistry` and `PaymentForwarder`
+   - Deploys the stealth address infrastructure.
 
-5. **gunL2Bridge.ts** - Deploys `GunL2Bridge`
-   - Parameters: `relayRegistry` (ShogunRelayRegistry address, REQUIRED when deploying standalone), `sequencer` (optional, default: zero address = any relay can submit)
+5. **tuneCampFactory.ts** - Deploys `TuneCampFactory`, `TuneCampNFT`, and `TuneCampCheckout`
+   - Deploys the TuneCamp ecosystem.
 
-6. **deployProtocol.ts** - Orchestrates deployment of core protocol contracts only
-   - Deploys only the core Shogun protocol contracts
-   - Includes: RelayRegistry, DataPostRegistry, DataSaleEscrowFactory, StorageDealRegistry, GunL2Bridge
-   - Excludes: BridgeDex, SmartWallet, StealthAddress
+### Orchestration Modules
 
-7. **deployAll.ts** - Orchestrates deployment of all contracts
-   - Deploys all contracts in the correct order with dependencies
-   - Includes: RelayRegistry, DataPostRegistry, DataSaleEscrowFactory, StorageDealRegistry, SmartWalletFactory, StealthKeyRegistry, PayamentForwarder, BridgeDex, GunL2Bridge
+1. **deployProtocol.ts** - Orchestrates deployment of core protocol contracts.
+   - Includes: RelayRegistry, DataPostRegistry, DataSaleEscrowFactory.
 
-### Other Modules
-
-- **smartWallet.ts** - Deploys `SmartWalletFactory`
-- **stealthAddress.ts** - Deploys `StealthKeyRegistry` and `PaymentForwarder`
-- **bridgeDex.ts** - Deploys `BridgeDex`
+2. **deployAll.ts** - Orchestrates deployment of all contracts in correct order.
+   - Includes: RelayRegistry, DataPostRegistry, DataSaleEscrowFactory, Stealth contracts.
 
 ## Usage
 
@@ -50,89 +43,9 @@ Deploy only core protocol contracts:
 npx hardhat ignition deploy ignition/modules/deployProtocol.ts --network baseSepolia
 ```
 
-Deploy individual modules:
-```bash
-npx hardhat ignition deploy ignition/modules/relayRegistry.ts --network baseSepolia
-npx hardhat ignition deploy ignition/modules/dataPostRegistry.ts --network baseSepolia
-npx hardhat ignition deploy ignition/modules/gunL2Bridge.ts --network baseSepolia --parameters '{"GunL2Bridge":{"relayRegistry":"0x..."}}'
-```
-
-### Using Deployment Scripts
-
-Deploy all contracts using the script:
-```bash
-npx hardhat run scripts/deploy-all.ts --network baseSepolia
-```
-
-Deploy only core protocol contracts:
-```bash
-npx hardhat run scripts/deploy-protocol.ts --network baseSepolia
-```
-
-Deploy individual contracts:
-```bash
-npx hardhat run scripts/deploy-relay-registry.ts --network baseSepolia
-```
-
-## Deployment Order
-
-When deploying manually, follow this order:
-
-1. **ShogunRelayRegistry** (no dependencies)
-2. **DataPostRegistry** (no dependencies)
-3. **DataSaleEscrowFactory** (depends on RelayRegistry and DataPostRegistry)
-4. **StorageDealRegistry** (depends on RelayRegistry)
-5. **GunL2Bridge** (depends on RelayRegistry)
-6. **SmartWalletFactory** (no dependencies)
-7. **StealthKeyRegistry** (no dependencies)
-8. **PayamentForwarder** (no dependencies, but should be configured after deployment)
-9. **BridgeDex** (no dependencies)
-
 ## Configuration
 
 ### USDC Addresses
 
 - Base Sepolia: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
 - Base Mainnet: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
-
-### Default Parameters
-
-- **Min Stake**: 100 USDC (6 decimals = `100000000`)
-- **Unstaking Delay**: 7 days (604800 seconds)
-- **Treasury**: `0xA6591dCDff5C7616110b4f84207184aef7835048` (or zero address to burn)
-
-## Verification
-
-After deployment, verify contracts on BaseScan:
-
-```bash
-# ShogunRelayRegistry
-npx hardhat verify --network baseSepolia <ADDRESS> <USDC_ADDRESS> <MIN_STAKE> <UNSTAKING_DELAY> <TREASURY>
-
-# DataPostRegistry
-npx hardhat verify --network baseSepolia <ADDRESS>
-
-# DataSaleEscrowFactory
-npx hardhat verify --network baseSepolia <ADDRESS> <USDC_ADDRESS> <RELAY_REGISTRY> <POST_REGISTRY>
-
-# StorageDealRegistry
-npx hardhat verify --network baseSepolia <ADDRESS> <RELAY_REGISTRY>
-
-# GunL2Bridge
-npx hardhat verify --network baseSepolia <ADDRESS> <RELAY_REGISTRY> <SEQUENCER>
-
-# SmartWalletFactory
-npx hardhat verify --network baseSepolia <ADDRESS>
-
-# StealthKeyRegistry
-npx hardhat verify --network baseSepolia <ADDRESS>
-
-# PayamentForwarder
-npx hardhat verify --network baseSepolia <ADDRESS> <TOLL> <TOLL_COLLECTOR> <TOLL_RECEIVER>
-
-# BridgeDex
-npx hardhat verify --network baseSepolia <ADDRESS>
-```
-
-The `deploy-all.ts` script automatically prints verification commands after deployment.
-

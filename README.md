@@ -1,440 +1,99 @@
 # Shogun Contracts
 
-A comprehensive smart contract system for decentralized relay management and stealth address functionality on Ethereum and Optimism networks.
+A comprehensive smart contract system for decentralized relay management, stealth address functionality, and the TuneCamp ecosystem.
 
 ## Overview
 
-Shogun Contracts provides a comprehensive smart contract system for decentralized relay management, privacy-focused payments, and cross-chain functionality.
+Shogun Contracts provides the essential blockchain infrastructure for the Shogun Protocol, focusing on decentralized identity, private payments, and content monetization.
 
 ## Architecture
 
-The project consists of five main contract categories:
+The project consists of three main contract categories:
 
-### Relay Registry (`/contracts/registry/`)
+### 1. Relay Registry (`/contracts/registry/`)
+- **ShogunRelayRegistry.sol**: On-chain registry for relay discovery, staking, and decentralized network coordination.
 
-- **ShogunRelayRegistry.sol**: On-chain registry for relay discovery, staking, storage deals, and slashing
+### 2. Stealth System (`/contracts/stealth/`)
+- **StealthKeyRegistry.sol**: Manages stealth key registration and metadata for privacy-focused payments.
+- **PaymentForwarder.sol**: Handles stealth payments in ETH and ERC-20 tokens with anti-spam toll mechanisms.
+- **IPaymentForwarderHookReceiver.sol**: Interface for building automated systems that respond to stealth payments.
 
-### Stealth System (`/contracts/stealth/`)
+### 3. TuneCamp Ecosystem (`/contracts/tunecamp/`)
+- **TuneCampFactory.sol**: Central factory for deploying new TuneCamp release environments.
+- **TuneCampNFT.sol**: ERC-721 implementation for music releases and digital collectibles.
+- **TuneCampCheckout.sol**: Specialized escrow and payment contract for decentralized music sales.
 
-- **StealthKeyRegistry.sol**: Manages stealth key registration and metadata
-- **PaymentForwarder.sol**: Handles stealth payments with anti-spam measures
-- **StealthPool.sol**: Privacy-focused mixing pool for stealth transactions with Merkle tree commitments
-- **IPaymentForwarderHookReceiver.sol**: Interface for payment hook receivers
-
-### Smart Wallet (`/contracts/wallet/`)
-
-- **SmartWallet.sol**: Multi-sig wallet with social recovery and batch transactions
-- **SmartWalletFactory.sol**: Factory contract for deploying SmartWallet instances
-
-### Bridge (`/contracts/bridge/`)
-
-- **BridgeDex.sol**: Decentralized cross-chain bridge for token transfers
-
-### IPFS (`/contracts/ipfs/`)
-
-- **IPCMFactory.sol**: Factory for managing IPCM (IPFS Content Management) instances
-- **ipcm.sol**: Contract for managing encrypted data on IPFS
-
-### Oracle (`/contracts/oracle/`)
-
-- **ShogunOracle.sol**: Abstract base contract for Trustus-based oracle data verification (EIP-712)
-- **OracleFeedRegistry.sol**: Registry for relay oracle data feeds with pricing and schema support
+---
 
 ## Smart Contracts
 
 ### ShogunRelayRegistry
+The backbone of the Shogun relay network. Deployed on **Base Sepolia** and **Base Mainnet**.
 
-On-chain registry for the Shogun relay network. Deployed on **Base Sepolia** (testnet) and **Base** (mainnet).
+- **Relay Registration**: Operators stake USDC and register endpoints.
+- **Economic Security**: Minimum stake requirements to ensure network integrity.
+- **Discovery**: Real-time discovery of active relays for client applications.
 
-**Key Features:**
+### Stealth System
+Privacy-preserving payments using stealth address technology.
 
-- **Relay Registration**: Operators register with endpoint URL and GunDB public key
-- **USDC Staking**: 100 USDC minimum stake (anti-spam, skin-in-the-game)
-- **Storage Deals**: On-chain registration of storage deals for dispute resolution
-- **Slashing**: Economic penalties for missed proofs (1%) and data loss (10%)
-- **Discovery**: Query active relays directly from the blockchain
+- **StealthKeyRegistry**: Allows users to publish their stealth viewing and spending keys.
+- **PaymentForwarder**: Enables senders to generate one-time stealth addresses and announce payments on-chain.
 
-**Core Functions:**
+### TuneCamp
+A decentralized music distribution and monetization platform.
 
-- `registerRelay(endpoint, gunPubKey, stakeAmount)`: Register as a relay operator
-- `updateRelay(newEndpoint, newGunPubKey)`: Update relay info
-- `increaseStake(amount)`: Add more stake
-- `requestUnstake()`: Begin 7-day unstaking period
-- `withdrawStake()`: Withdraw after unstaking delay
-- `registerDeal(dealId, client, cid, sizeMB, priceUSDC, durationDays)`: Register storage deal
-- `reportMissedProof(relay, dealId, evidence)`: Report proof violation
-- `reportDataLoss(relay, dealId, evidence)`: Report data loss
-- `getActiveRelays()`: List all active relays
-- `getRelayInfo(address)`: Get relay details
-
-**Contract Addresses:**
-
-| Network | Address | USDC |
-|---------|---------|------|
-| Base Sepolia | `0x412D3Cf47907C231EE26D261714D2126eb3735e6` | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
-| Base Mainnet | TBD | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-
-**Deployment:**
-
-```bash
-# Deploy to Base Sepolia
-npx hardhat run scripts/deploy-relay-registry.ts --network baseSepolia
-
-# Verify on BaseScan
-npx hardhat verify --network baseSepolia <ADDRESS> <USDC> <MIN_STAKE> <DELAY>
-```
+- **Factory**: Automates the deployment of collection and checkout contracts.
+- **NFT**: Handles ownership and metadata for tracks and albums.
+- **Checkout**: Facilitates secure purchases with support for various tokens and revenue splitting.
 
 ---
 
-### StealthKeyRegistry
+## Contract Addresses
 
-Manages stealth key registration for privacy-focused transactions.
+| Contract | Base Sepolia (84532) | Base Mainnet (8453) |
+|----------|----------------------|---------------------|
+| **ShogunRelayRegistry** | `0x8B88258923bad2d634e533Cb6405d4022CfF320f` | TBD |
+| **DataPostRegistry** | `0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421` | TBD |
+| **DataSaleEscrowFactory** | `0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D` | TBD |
+| **StealthKeyRegistry** | `0x6038197D7eb76ee668b37c61021619542F757B63` | `0x9aD8B62765C528c168d704b89e50069876a29F2C` |
+| **PaymentForwarder** | `0x512edE537cb53dcbFC29629B49999c3e8f18799Eb` | `0x0bE89b593A6eF044B25802195C634559a7FcBbdF` |
+| **TuneCampFactory** | TBD | `0xc9b5A11cF6E8D454f6C0d81c319DE59c4D29cAbd` |
+| **TuneCampNFT** | TBD | `0x3059D4349B47FA57f1B6D0Ee92e695F4E86A826b` |
+| **TuneCampCheckout** | TBD | `0xb2Ba5A8d07d52B49e98A19e763b8B329e485f564` |
 
-**Key Features:**
+---
 
-- EIP-712 compliant signature verification
-- Viewing and spending public key management
-- Stealth metadata registration
-- On-behalf registration support
+## Deployment & Development
 
-**Core Functions:**
-
-- `registerStealthKeys(string viewingPublicKey, string spendingPublicKey)`: Register stealth keys
-- `registerStealthKeysOnBehalf()`: Register keys for another address
-- `registerStealthMetadata()`: Register stealth transaction metadata
-
-### PaymentForwarder
-
-Handles stealth payments with built-in anti-spam protection.
-
-**Key Features:**
-
-- ETH and ERC-20 token support
-- Toll-based anti-spam mechanism
-- Stealth payment announcements
-- Secure fund withdrawal
-
-**Core Functions:**
-
-- `send()`: Send ETH to stealth address
-- `sendToken()`: Send ERC-20 tokens to stealth address
-- `withdraw()`: Withdraw funds from stealth address
-- `collectTolls()`: Collect accumulated tolls
-
-### StealthPool
-
-Privacy-focused mixing pool for stealth transactions using cryptographic commitments.
-
-**Key Features:**
-
-- Merkle tree-based commitment system
-- Nonce-based replay attack prevention
-- Auto-generated Merkle roots
-- Direct user payments (no relayer required)
-
-**Core Functions:**
-
-- `deposit()`: Deposit funds with cryptographic commitment
-- `withdraw()`: Withdraw funds using Merkle proof
-- `updateMerkleRoot()`: Update the Merkle root with new deposits
-
-### SmartWallet
-
-Multi-signature wallet with advanced features for secure asset management.
-
-**Key Features:**
-
-- Multi-sig support with configurable threshold
-- Social recovery via guardians
-- Batch transaction execution
-- Proposal-based execution system
-
-**Core Functions:**
-
-- `addSigner()`: Add a new signer
-- `proposeExecution()`: Propose a transaction
-- `approveExecution()`: Approve a proposed transaction
-- `executeProposal()`: Execute an approved proposal
-- `initiateRecovery()`: Start social recovery process
-
-### BridgeDex
-
-Decentralized cross-chain bridge for trustless token transfers.
-
-**Key Features:**
-
-- Cross-chain token transfers
-- Provider-based liquidity system
-- Protocol fee management
-- Ticket-based bridging mechanism
-
-**Core Functions:**
-
-- `lock()`: Lock tokens for cross-chain transfer
-- `unlock()`: Unlock tokens on destination chain
-- `acceptRequest()`: Accept a bridge request
-- `withdraw()`: Withdraw bridged tokens
-
-### IPCMFactory
-
-Factory contract for managing IPFS Content Management instances.
-
-**Key Features:**
-
-- Deploy IPCM instances
-- Manage encrypted data on IPFS
-- Owner-controlled access
-
-### ShogunOracle
-
-Abstract base contract for Trustus-based oracle data verification. Enables relays to provide signed off-chain data for on-chain consumption.
-
-**Key Features:**
-
-- EIP-712 signature verification
-- Relay registry integration (only active relays can sign)
-- Packet expiration (deadline-based)
-- Feed ID verification
-
-**Core Functions:**
-
-- `verifyOraclePacket(feedId, packet)`: Modifier to verify signed oracle packets
-- `getPacketSigner(packet)`: Recover signer address from packet
-- `DOMAIN_SEPARATOR()`: EIP-712 domain separator
-
-### OracleFeedRegistry
-
-Registry for oracle data feeds provided by Shogun relays. Allows relays to advertise available data feeds with pricing.
-
-**Key Features:**
-
-- Generic data type support (PRICE, STRING, JSON, BYTES, CUSTOM)
-- Per-feed pricing in USDC
-- Schema definition for payload decoding
-- Multi-relay support (same feed name, different relays)
-
-**Core Functions:**
-
-- `registerFeed(name, dataType, schema, price, updateFreq)`: Register a new feed
-- `updateFeed(feedId, newPrice, active)`: Update feed pricing/status
-- `deactivateFeed(feedId)`: Deactivate a feed
-- `getRelayFeeds(relay)`: Get all feeds for a relay
-- `isFeedActive(relay, feedId)`: Check if feed exists and is active
-
-**Data Types:**
-
-| Type | Value | Description |
-|------|-------|-------------|
-| PRICE | 0 | Simple price value (uint256) |
-| STRING | 1 | String data |
-| JSON | 2 | JSON-encoded data |
-| BYTES | 3 | Raw bytes |
-| CUSTOM | 4 | Custom ABI-encoded data |
-
-**Deployment:**
-
-```bash
-npx hardhat run scripts/deploy-oracle.ts --network baseSepolia
-```
-
-## Technology Stack
-
-- **Solidity**: ^0.8.28
-- **Hardhat**: ^2.22.19
-- **OpenZeppelin**: ^5.3.0
-- **TypeScript**: >=4.5.0
-- **Ethers.js**: ^6.4.0
-
-## Quick Start
-
-### NPM Installation
-
-```bash
-npm install shogun-contracts
-```
-
-### Development Installation
-
-1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd shogun-contracts
-```
-
-2. Install dependencies:
-
+### Setup
+1. Clone the repository and install dependencies:
 ```bash
 yarn install
 ```
+2. Configure `.env` (use `.env.example` as a template).
 
-3. Set up environment variables:
-
+### Deployment with Hardhat Ignition
+Deploy all core contracts to Base Sepolia:
 ```bash
-cp .env.example .env
+npx hardhat ignition deploy ignition/modules/deployAll.ts --network baseSepolia
 ```
 
-Fill in the required environment variables:
-
-- `PRIVATE_KEY`: Your deployment private key
-- `ALCHEMY_API_KEY`: Alchemy API key for network access
-- `ETHERSCAN_API_KEY`: Etherscan API key for contract verification
-
-## Configuration
-
-The project supports multiple networks:
-
-- **Sepolia**: Ethereum testnet
-- **Optimism Sepolia**: Optimism testnet
-- **Base Sepolia**: Base testnet (for ShogunRelayRegistry)
-- **Base**: Base mainnet (for ShogunRelayRegistry)
-- **Localhost**: Local development network
-
-Network configuration is handled in `hardhat.config.ts`.
-
-**Required Environment Variables:**
-
+Deploy Stealth infrastructure to Base Mainnet:
 ```bash
-PRIVATE_KEY=0x...               # Deployment wallet private key
-ALCHEMY_API_KEY=...             # Alchemy API key
-BASESCAN_API_KEY=...            # BaseScan API key (for verification)
-BASE_SEPOLIA_RPC_URL=...        # Optional: custom RPC URL
+npx hardhat ignition deploy ignition/modules/stealthAddress.ts --network base
 ```
 
-## Deployment
-
-### Local Development
-
-1. Start local blockchain:
-
+### Post-Deployment
+Always run the post-deployment script to synchronize addresses and ABIs with the frontend configurations:
 ```bash
-yarn chain
+yarn post-deployment
 ```
-
-2. Deploy contracts locally:
-
-```bash
-yarn deploy:local
-```
-
-### Testnet Deployment
-
-Deploy to Optimism Sepolia with verification:
-
-```bash
-yarn deploy:optimismSepolia
-```
-
-## Deployment Modules
-
-### Payment Router Module
-
-Deploys the relay payment system with test relay registration.
-
-### Stealth Address Module
-
-Deploys the stealth address infrastructure with:
-
-- StealthKeyRegistry
-- PaymentForwarder (with 0.001 ETH toll)
 
 ## Testing
-
-Run the test suite:
-
 ```bash
 npx hardhat test
 ```
 
-Test files include:
-
-- Tests for all deployed contracts
-
-## Usage Examples
-
-### Relay Registration
-
-```solidity
-// Register a new relay with staking
-shogunRelayRegistry.registerRelay(
-    "https://my-relay.com/gun",
-    gunPubKey,
-    stakeAmount
-);
-```
-
-### Stealth Key Registration
-
-```solidity
-// Register stealth keys
-stealthKeyRegistry.registerStealthKeys(
-    "viewing_public_key",
-    "spending_public_key"
-);
-```
-
-### Stealth Payment
-
-```solidity
-// Send ETH to stealth address
-paymentForwarder.send{value: amount + toll}(
-    stealthAddress,
-    toll,
-    ephemeralPublicKey,
-    encryptedData
-);
-```
-
-### Stealth Pool Deposit
-
-```solidity
-// Deposit to stealth pool with commitment
-stealthPool.deposit{value: amount}(commitment, nonce);
-```
-
-### Smart Wallet Multi-sig
-
-```solidity
-// Propose and execute transaction
-uint256 proposalId = smartWallet.proposeExecution(target, data);
-smartWallet.approveExecution(proposalId);
-smartWallet.executeProposal(proposalId);
-```
-
-### Cross-chain Bridge
-
-```solidity
-// Lock tokens for cross-chain transfer
-bridgeDex.lock(tokenAddress, amount, destinationChainId);
-```
-
-## Security Features
-
-- **Access Control**: Owner-only functions for critical operations
-- **Emergency Pause**: Ability to pause contract operations
-- **Anti-Spam**: Toll-based protection in stealth payments
-- **Signature Verification**: EIP-712 compliant signatures
-- **Safe Math**: OpenZeppelin's SafeERC20 for token operations
-
-## Gas Optimization
-
-- Solidity optimizer enabled (200 runs)
-- ViaIR compilation for complex contracts
-- Efficient data structures and mappings
-- Minimal storage operations
-
 ## License
-
-MIT License - see LICENSE file for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## Support
-
-For questions and support, please open an issue on the repository.
+MIT

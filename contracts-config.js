@@ -4,7 +4,7 @@
  * Centralized configuration file for all contract addresses across networks.
  * This file should be kept in sync with actual deployments.
  * 
- * Last updated: 2026-03-17
+ * Last updated: 2026-04-10
  */
 
 export const CONTRACTS_CONFIG = {
@@ -13,6 +13,8 @@ export const CONTRACTS_CONFIG = {
     "relayRegistry": "0x8B88258923bad2d634e533Cb6405d4022CfF320f",
     "dataPostRegistry": "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421",
     "dataSaleEscrowFactory": "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D",
+    "paymentForwarder": "0x512edE537cb53dcbFC29629B4999c3e8f18799Eb",
+    "stealthKeyRegistry": "0x6038197D7eb76ee668b37c61021619542F757B63",
     "tuneCampCheckout": null,
     "tuneCampNFT": null,
     "tuneCampFactory": null,
@@ -25,6 +27,8 @@ export const CONTRACTS_CONFIG = {
     "relayRegistry": null,
     "dataPostRegistry": null,
     "dataSaleEscrowFactory": null,
+    "paymentForwarder": "0x0bE89b593A6eF044B25802195C634559a7FcBbdF",
+    "stealthKeyRegistry": "0x9aD8B62765C528c168d704b89e50069876a29F2C",
     "tuneCampCheckout": "0xb2Ba5A8d07d52B49e98A19e763b8B329e485f564",
     "tuneCampNFT": "0x3059D4349B47FA57f1B6D0Ee92e695F4E86A826b",
     "tuneCampFactory": "0xc9b5A11cF6E8D454f6C0d81c319DE59c4D29cAbd",

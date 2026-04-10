@@ -40,10 +40,11 @@ const CONTRACT_NAME_MAP: { [deployedName: string]: string } = {
   "RelayRegistry#ShogunRelayRegistry": "relayRegistry",
   "DataPostRegistry#DataPostRegistry": "dataPostRegistry",
   "DeployProtocol#DataSaleEscrowFactory": "dataSaleEscrowFactory",
-  "DeployAll#DataSaleEscrowFactory": "dataSaleEscrowFactory",
   "TuneCampFactory#TuneCampCheckout": "tuneCampCheckout",
   "TuneCampFactory#TuneCampNFT": "tuneCampNFT",
   "TuneCampFactory#TuneCampFactory": "tuneCampFactory",
+  "Stealth#PaymentForwarder": "paymentForwarder",
+  "Stealth#StealthKeyRegistry": "stealthKeyRegistry",
 };
 
 function loadExistingDeployments(): DeploymentsFile {
@@ -177,6 +178,15 @@ function generateDeploymentsJson(): void {
     // Rimuovi i deployment obsoleti
     for (const key of keysToRemove) {
       delete deployments[chainId][key];
+    }
+
+    // FINAL CLEANUP: Rimuovi tutto ciò che non è mappata in CONTRACT_NAME_MAP
+    // Questo garantisce che deployments.json rimanga pulito e coerente con la configurazione
+    for (const existingKey of Object.keys(deployments[chainId])) {
+      if (!CONTRACT_NAME_MAP[existingKey]) {
+        console.log(`🗑️  Rimosso contratto non mappato: ${chainId} -> ${existingKey}`);
+        delete deployments[chainId][existingKey];
+      }
     }
   }
 
