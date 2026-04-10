@@ -12,8 +12,8 @@ export declare const CONTRACTS_CONFIG: {
         readonly relayRegistry: "0x8B88258923bad2d634e533Cb6405d4022CfF320f";
         readonly dataPostRegistry: "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421";
         readonly dataSaleEscrowFactory: "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D";
-        readonly paymentForwarder: "0x512edE537cb53dcbFC29629B49999c3e8f18799Eb";
-        readonly stealthKeyRegistry: "0x6038197D7eb76ee668b37c61021619542F757B63";
+        readonly paymentForwarder: "0xDF64fFB593AE0bEA06F35AD80d5097E18ee903B1";
+        readonly stealthKeyRegistry: "0xCF6429c227F1a2912Bcb98405CAa8b436c18Cb55";
         readonly tuneCampCheckout: null;
         readonly tuneCampNFT: null;
         readonly tuneCampFactory: null;
@@ -41,8 +41,8 @@ export declare function getConfigByChainId(chainId: number | string): {
     readonly relayRegistry: "0x8B88258923bad2d634e533Cb6405d4022CfF320f";
     readonly dataPostRegistry: "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421";
     readonly dataSaleEscrowFactory: "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D";
-    readonly paymentForwarder: "0x512edE537cb53dcbFC29629B49999c3e8f18799Eb";
-    readonly stealthKeyRegistry: "0x6038197D7eb76ee668b37c61021619542F757B63";
+    readonly paymentForwarder: "0xDF64fFB593AE0bEA06F35AD80d5097E18ee903B1";
+    readonly stealthKeyRegistry: "0xCF6429c227F1a2912Bcb98405CAa8b436c18Cb55";
     readonly tuneCampCheckout: null;
     readonly tuneCampNFT: null;
     readonly tuneCampFactory: null;
@@ -68,8 +68,8 @@ export declare function getConfigByNetwork(network: keyof typeof CONTRACTS_CONFI
     readonly relayRegistry: "0x8B88258923bad2d634e533Cb6405d4022CfF320f";
     readonly dataPostRegistry: "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421";
     readonly dataSaleEscrowFactory: "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D";
-    readonly paymentForwarder: "0x512edE537cb53dcbFC29629B49999c3e8f18799Eb";
-    readonly stealthKeyRegistry: "0x6038197D7eb76ee668b37c61021619542F757B63";
+    readonly paymentForwarder: "0xDF64fFB593AE0bEA06F35AD80d5097E18ee903B1";
+    readonly stealthKeyRegistry: "0xCF6429c227F1a2912Bcb98405CAa8b436c18Cb55";
     readonly tuneCampCheckout: null;
     readonly tuneCampNFT: null;
     readonly tuneCampFactory: null;

@@ -3881,7 +3881,7 @@ export declare const DEPLOYMENTS: {
             }];
         };
         readonly "Stealth#PaymentForwarder": {
-            readonly address: "0x512edE537cb53dcbFC29629B4999c3e8f18799Eb";
+            readonly address: "0xDF64fFB593AE0bEA06F35AD80d5097E18ee903B1";
             readonly abi: readonly [{
                 readonly inputs: readonly [{
                     readonly internalType: "uint256";
@@ -4273,7 +4273,7 @@ export declare const DEPLOYMENTS: {
             }];
         };
         readonly "Stealth#StealthKeyRegistry": {
-            readonly address: "0x6038197D7eb76ee668b37c61021619542F757B63";
+            readonly address: "0xCF6429c227F1a2912Bcb98405CAa8b436c18Cb55";
             readonly abi: readonly [{
                 readonly inputs: readonly [];
                 readonly stateMutability: "nonpayable";
@@ -4363,6 +4363,20 @@ export declare const DEPLOYMENTS: {
                     readonly internalType: "string";
                     readonly name: "spendingPublicKey";
                     readonly type: "string";
+                }];
+                readonly stateMutability: "view";
+                readonly type: "function";
+            }, {
+                readonly inputs: readonly [{
+                    readonly internalType: "address";
+                    readonly name: "";
+                    readonly type: "address";
+                }];
+                readonly name: "nonces";
+                readonly outputs: readonly [{
+                    readonly internalType: "uint256";
+                    readonly name: "";
+                    readonly type: "uint256";
                 }];
                 readonly stateMutability: "view";
                 readonly type: "function";
