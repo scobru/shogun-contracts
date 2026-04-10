@@ -1,9 +1,4 @@
 {
-  "DataPostRegistry#DataPostRegistry": "0x0fcAB612E9DD123ECD4aC3E50F42da77da3cf421",
-  "RelayRegistry#ShogunRelayRegistry": "0x8B88258923bad2d634e533Cb6405d4022CfF320f",
-  "DeployProtocol#DataSaleEscrowFactory": "0xFB1cFB380772b4DEE0b71a9eBe21E9a873ED932D",
-  "DeployProtocol#StorageDealRegistry": "0x1D7E662FA5C7c4166E2740B590aC014458582302",
-  "OracleFeedRegistry#OracleFeedRegistry": "0x0f3349A2A0d876e4e6bbf0B79ACBe59e65E0D9E4",
-  "Stealth#PaymentForwarder": "0x512edE537cb53dcbFC29629B4999c3e8f18799Eb",
-  "Stealth#StealthKeyRegistry": "0x6038197D7eb76ee668b37c61021619542F757B63"
+  "Stealth#PaymentForwarder": "0xDF64fFB593AE0bEA06F35AD80d5097E18ee903B1",
+  "Stealth#StealthKeyRegistry": "0xCF6429c227F1a2912Bcb98405CAa8b436c18Cb55"
 }

@@ -4997,7 +4997,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Stealth#PaymentForwarder": {
-      "address": "0x512edE537cb53dcbFC29629B4999c3e8f18799Eb",
+      "address": "0xDF64fFB593AE0bEA06F35AD80d5097E18ee903B1",
       "abi": [
         {
           "inputs": [
@@ -5498,7 +5498,7 @@ export const DEPLOYMENTS = {
       ]
     },
     "Stealth#StealthKeyRegistry": {
-      "address": "0x6038197D7eb76ee668b37c61021619542F757B63",
+      "address": "0xCF6429c227F1a2912Bcb98405CAa8b436c18Cb55",
       "abi": [
         {
           "inputs": [],
@@ -5612,6 +5612,25 @@ export const DEPLOYMENTS = {
               "internalType": "string",
               "name": "spendingPublicKey",
               "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "nonces",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
             }
           ],
           "stateMutability": "view",
